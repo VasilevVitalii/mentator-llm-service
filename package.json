@@ -1,0 +1,25 @@
+{
+    "version": "1.0.0",
+    "name": "mentator-llm-service",
+    "module": "src/index.ts",
+    "type": "module",
+    "private": true,
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/minimist": "^1.2.5",
+        "tsc-esm-fix": "^3.1.2",
+        "typescript": "^5.9.3"
+    },
+    "scripts": {
+        "debug": "bun run debug/index.ts",
+        "prebuild": "node .auto/prebuild.js",
+        "build:linux": "npm run prebuild && bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/mentator-llm-service && chmod +x dist/mentator-llm-service",
+        "build:win": "npm run prebuild && bun build src/index.ts --compile --target=bun-windows-x64 --outfile dist/mentator-llm-service.exe",
+        "buildjs": "npm run prebuild && node_modules/.bin/tsc --outDir distjs && tsc-esm-fix distjs"
+    },
+    "dependencies": {
+        "@sinclair/typebox": "^0.34.41",
+        "minimist": "^1.2.8",
+        "vv-config-jsonc": "^1.0.6"
+    }
+}
