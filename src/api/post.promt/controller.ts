@@ -1,82 +1,16 @@
 import type { FastifyInstance } from 'fastify'
 import { PromtRequestDto, PromtResponseDto, type TPromtRequest, type TPromtResponse } from './dto'
 import { getLlama, LlamaChatSession, type LlamaModel, type LlamaContext, type Llama } from 'node-llama-cpp'
-import { ModelManager } from '../../modelManager'
-import { join } from 'path'
 import Ajv from 'ajv'
+import { convertJsonSchemaToGbnf } from './additional/convertJsonSchemaToGbnf'
+import { LoadContext } from './additional/loadContext'
 
-/*
-1. Логирования никакого не надо, обработка ошибок самая простейшая с использованием console.error()
-2. Загружденную модель хранить в памяти. инфу о том, какая модель загружена - хранить в контроллере
-3. Загружать модель перед вопросом если это надо (возможно, уже загружена нужная модель()
-4. Самостоятельно смапь параметры наших options и node-llama-cpp
-5. Используем createGrammarForJsonSchema из node-llama-cpp. Это встроенная функция, которая НЕ требует llama инстанса
-6. Резултьтат валидируем через TypeBox
-7. Таймауты и durationMsec - node-llama-cpp поддерживает AbortController
-*/
-
-let currentModelName: string | null = null
-let currentModel: LlamaModel | null = null
-let currentContext: LlamaContext | null = null
 let llama: Llama | null = null
 const ajv = new Ajv()
 
 /**
  * Convert standard JSON Schema to GBNF JSON Schema format
  */
-function convertJsonSchemaToGbnf(schema: any): any {
-	// Handle array type
-	if (schema.type === 'array' && schema.items) {
-		return {
-			type: 'array' as const,
-			items: convertJsonSchemaToGbnf(schema.items),
-		}
-	}
-
-	// Handle object type
-	if (schema.type === 'object' && schema.properties) {
-		const properties: Record<string, any> = {}
-		for (const [key, value] of Object.entries(schema.properties)) {
-			properties[key] = convertJsonSchemaToGbnf(value as any)
-		}
-
-		return {
-			type: 'object' as const,
-			properties,
-			additionalProperties: schema.additionalProperties === true ? true : false,
-		}
-	}
-
-	// Handle primitive types
-	if (schema.type === 'string') {
-		return { type: 'string' as const }
-	}
-	if (schema.type === 'number') {
-		return { type: 'number' as const }
-	}
-	if (schema.type === 'integer') {
-		return { type: 'integer' as const }
-	}
-	if (schema.type === 'boolean') {
-		return { type: 'boolean' as const }
-	}
-	if (schema.type === 'null') {
-		return { type: 'null' as const }
-	}
-
-	// Handle enum
-	if (schema.enum) {
-		return { enum: schema.enum as readonly (string | number | boolean | null)[] }
-	}
-
-	// Handle const
-	if (schema.const !== undefined) {
-		return { const: schema.const }
-	}
-
-	// Fallback
-	throw new Error(`Unsupported JSON Schema format: ${JSON.stringify(schema)}`)
-}
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -99,49 +33,18 @@ export async function controller(fastify: FastifyInstance) {
 			const body = req.body
 
 			try {
-				// Get model info from ModelManager
-				const modelInfo = ModelManager().getModel(body.model)
-				if (!modelInfo) {
-					res.code(200).send({
-						durationMsec: Date.now() - startTime,
-						loadModel: 'exists' as const,
-						error: `Model "${body.model}" not found`,
-					})
-					return
-				}
-
-				// Determine if we need to reload the model
-				let loadStatus: 'reload' | 'load' | 'exists' = 'exists'
-				const modelPath = join(ModelManager()['_modelDir'], modelInfo.relativeFileName)
-
-				if (currentModelName !== body.model) {
-					// Cleanup previous model
-					if (currentContext) {
-						await currentContext.dispose()
-						currentContext = null
-					}
-					if (currentModel) {
-						await currentModel.dispose()
-						currentModel = null
-					}
-
-					loadStatus = currentModelName === null ? 'load' : 'reload'
-
-					// Load new model
-					llama = await getLlama()
-					currentModel = await llama.loadModel({ modelPath })
-					currentModelName = body.model
-				}
-
-				// Create new context for each request to avoid sequence exhaustion
-				if (currentContext) {
-					await currentContext.dispose()
-				}
-				currentContext = await currentModel!.createContext()
-
-				// Ensure llama instance is available
 				if (!llama) {
 					llama = await getLlama()
+				}
+				const loadRes = await LoadContext(llama, body.model)
+				if (!loadRes.ok) {
+					//TODO errorCode from loadRes
+					res.code(200).send({
+						durationMsec: Date.now() - startTime,
+						loadModelStatus: 'exists' as const,
+						error: loadRes.error,
+					})
+					return
 				}
 
 				// Merge default options with request options
@@ -208,10 +111,11 @@ export async function controller(fastify: FastifyInstance) {
 							const gbnfSchema = convertJsonSchemaToGbnf(body.format.jsonSchema)
 							generationParams.grammar = await llama.createGrammarForJsonSchema(gbnfSchema)
 						} catch (grammarError: any) {
+							//TODO errorCode 400
 							console.error('Grammar creation error:', grammarError)
 							res.code(200).send({
 								durationMsec: Date.now() - startTime,
-								loadModel: loadStatus,
+								loadModelStatus: loadRes.result.loadModelStatus,
 								error: `Grammar creation error: ${grammarError.message}`,
 							})
 							return
@@ -220,7 +124,7 @@ export async function controller(fastify: FastifyInstance) {
 
 					// Create chat session
 					const session = new LlamaChatSession({
-						contextSequence: currentContext!.getSequence(),
+						contextSequence: loadRes.result.context.getSequence(),
 						systemPrompt: body.message.system,
 					})
 
@@ -243,9 +147,10 @@ export async function controller(fastify: FastifyInstance) {
 						const parsed = JSON.parse(cleanedText)
 						resultArray = Array.isArray(parsed) ? parsed : [parsed]
 					} catch (parseError) {
+						//TODO errorCode 400
 						res.code(200).send({
 							durationMsec: Date.now() - startTime,
-							loadModel: loadStatus,
+							loadModelStatus: loadRes.result.loadModelStatus,
 							error: `Failed to parse JSON response: ${parseError}`,
 						})
 						return
@@ -256,9 +161,10 @@ export async function controller(fastify: FastifyInstance) {
 						const validate = ajv.compile(body.format.jsonSchema)
 						const isValid = validate(resultArray)
 						if (!isValid) {
+							//TODO errorCode 400
 							res.code(200).send({
 								durationMsec: Date.now() - startTime,
-								loadModel: loadStatus,
+								loadModelStatus: loadRes.result.loadModelStatus,
 								error: `JSON Schema validation failed: ${validate.errors?.map(e => `${e.instancePath} ${e.message}`).join('; ')}`,
 							})
 							return
@@ -267,32 +173,39 @@ export async function controller(fastify: FastifyInstance) {
 
 					res.code(200).send({
 						durationMsec: Date.now() - startTime,
-						loadModel: loadStatus,
+						loadModelStatus: loadRes.result.loadModelStatus,
 						result: resultArray,
 					})
 				} catch (generationError: any) {
 					if (generationError.name === 'AbortError') {
+						//TODO errorCode 400
 						res.code(200).send({
 							durationMsec: Date.now() - startTime,
-							loadModel: loadStatus,
+							loadModelStatus: loadRes.result.loadModelStatus,
 							error: `Generation timeout exceeded (${body.durationMsec}ms)`,
 						})
 					} else {
 						console.error('Generation error:', generationError)
+						//TODO errorCode 500
 						res.code(200).send({
 							durationMsec: Date.now() - startTime,
-							loadModel: loadStatus,
+							loadModelStatus: loadRes.result.loadModelStatus,
 							error: `Generation error: ${generationError.message}`,
 						})
 					}
 				} finally {
 					clearTimeout(timeoutId)
+					// Dispose context to free memory
+					if (loadRes.ok && loadRes.result.context) {
+						await loadRes.result.context.dispose()
+					}
 				}
 			} catch (error: any) {
 				console.error('Controller error:', error)
+				//TODO errorCode 500
 				res.code(200).send({
 					durationMsec: Date.now() - startTime,
-					loadModel: 'exists' as const,
+					loadModelStatus: 'exists' as const,
 					error: `Error: ${error.message}`,
 				})
 			}

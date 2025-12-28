@@ -121,7 +121,7 @@ export const PromtRequestDto = Type.Object({
 
 export const PromtResponseDto = Type.Object({
 	durationMsec: Type.Number({ description: 'Actual processing duration in milliseconds' }),
-	loadModel: Type.Union([Type.Literal('reload'), Type.Literal('load'), Type.Literal('exists')], {
+	loadModelStatus: Type.Union([Type.Literal('load'), Type.Literal('exists')], {
 		description: 'Model loading status',
 	}),
 	result: Type.Optional(Type.Array(Type.Any())),

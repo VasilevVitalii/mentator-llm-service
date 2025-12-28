@@ -2,13 +2,13 @@ import type { TResult } from './tresult'
 import { fsReadDir, fsReadDirSync } from './util/fsReadDir'
 import { singleton } from './util/singleton'
 import { ClassLogger, type TClassLogger } from './util/classLogger'
-import { basename, dirname } from 'path'
+import { basename, dirname, join } from 'path'
 
 export type TModelManagerClassParam = {
 	modelDir: string
 } & TClassLogger
 
-type TModelFile = {
+export type TModelFile = {
 	relativeFileName: string
 	name: string
 	sizeKb: number
@@ -27,43 +27,43 @@ class ModelManagerClass extends ClassLogger {
 			return
 		}
 		const modelFileList = [] as TModelFile[]
-        const fileNew = [] as string[]
-        const fileRemove = [] as string[]
+		const fileNew = [] as string[]
+		const fileRemove = [] as string[]
 
-        fileListRes.result.forEach(fileItem => {
+		fileListRes.result.forEach(fileItem => {
 			if (!fileItem.relativeFileName) return
-            if (!fileItem.relativeFileName.toLowerCase().endsWith('.gguf')) return
+			if (!fileItem.relativeFileName.toLowerCase().endsWith('.gguf')) return
 			if (!fileItem.sizeKb) return
 			let name = basename(fileItem.relativeFileName)
 			if (modelFileList.some(f => f.name === name)) {
-                name = `${name} (${dirname(fileItem.relativeFileName)})`
+				name = `${name} (${dirname(fileItem.relativeFileName)})`
 			}
-            modelFileList.push({
-                name: name,
-                relativeFileName: fileItem.relativeFileName,
-                sizeKb: fileItem.sizeKb,
-            })
-            if (!this._modelFileList.some(f => f.name === name)) {
-                fileNew.push(name)
-            }
+			modelFileList.push({
+				name: name,
+				relativeFileName: fileItem.relativeFileName,
+				sizeKb: fileItem.sizeKb,
+			})
+			if (!this._modelFileList.some(f => f.name === name)) {
+				fileNew.push(name)
+			}
 		})
-        this._modelFileList.forEach(existsFileItem => {
-            if (!modelFileList.some(f => f.name === existsFileItem.name)) {
-                fileRemove.push(existsFileItem.name)
-            }
-        })
+		this._modelFileList.forEach(existsFileItem => {
+			if (!modelFileList.some(f => f.name === existsFileItem.name)) {
+				fileRemove.push(existsFileItem.name)
+			}
+		})
 
-        this._modelFileList = modelFileList
-        let logText = ''
-        if (fileRemove.length > 0) {
-            logText = `remove model(s): "${fileRemove.join('", "')}";`
-        }
-        if (fileNew.length > 0) {
-            logText = `${logText}${logText.length > 0 ? ' ' : ''}add model(s): "${fileNew.join('", "')}";`
-        }
-        if (logText.length > 0) {
-            this._onLog('_scanModelDir', logText)
-        }
+		this._modelFileList = modelFileList
+		let logText = ''
+		if (fileRemove.length > 0) {
+			logText = `remove model(s): "${fileRemove.join('", "')}";`
+		}
+		if (fileNew.length > 0) {
+			logText = `${logText}${logText.length > 0 ? ' ' : ''}add model(s): "${fileNew.join('", "')}";`
+		}
+		if (logText.length > 0) {
+			this._onLog('_scanModelDir', logText)
+		}
 	}
 
 	constructor(param: TModelManagerClassParam) {
@@ -92,9 +92,15 @@ class ModelManagerClass extends ClassLogger {
 		}
 	}
 
-    getModel(name: string): TModelFile | undefined {
-        return this._modelFileList.find(f => f.name === name)
-    }
+	getModel(name: string): (TModelFile & { fullFileName: string }) | undefined {
+		const model = this._modelFileList.find(f => f.name === name)
+		return model
+			? {
+					fullFileName: join(this._modelDir, model.relativeFileName),
+					...model,
+			  }
+			: undefined
+	}
 }
 
 export const ModelManager = singleton(ModelManagerClass)
