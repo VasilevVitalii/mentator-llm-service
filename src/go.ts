@@ -11,6 +11,9 @@ export async function Go(config: TConfig): Promise<void> {
 			logger: true,
 		})
 
+		// Save config to fastify instance for controllers
+		fastify.decorate('appConfig', config)
+
 		ModelManager.init({
 			modelDir: config.modelDir,
 			onErrorCore(text) {

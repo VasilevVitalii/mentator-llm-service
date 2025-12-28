@@ -94,9 +94,7 @@ export const PromtRequestDto = Type.Object({
 				}),
 			),
 			penalizeNewline: Type.Optional(Type.Boolean({ description: 'Penalize newline tokens in generation' })),
-			stopSequences: Type.Optional(
-				Type.Array(Type.String(), { description: 'Array of strings that will stop generation when encountered' }),
-			),
+			stopSequences: Type.Optional(Type.Array(Type.String(), { description: 'Array of strings that will stop generation when encountered' })),
 			trimWhitespace: Type.Optional(Type.Boolean({ description: 'Trim leading and trailing whitespace from output' })),
 			seed: Type.Optional(
 				Type.Integer({
@@ -121,11 +119,12 @@ export const PromtRequestDto = Type.Object({
 
 export const PromtResponseDto = Type.Object({
 	durationMsec: Type.Number({ description: 'Actual processing duration in milliseconds' }),
-	loadModelStatus: Type.Union([Type.Literal('load'), Type.Literal('exists')], {
-		description: 'Model loading status',
+	result: Type.Object({
+		loadModelStatus: Type.Union([Type.Literal('load'), Type.Literal('exists')], {
+			description: 'Model loading status',
+		}),
+		data: Type.Any(),
 	}),
-	result: Type.Optional(Type.Array(Type.Any())),
-	error: Type.Optional(Type.String()),
 })
 
 export type TPromtRequest = Static<typeof PromtRequestDto>
