@@ -18,8 +18,13 @@
         "buildjs": "npm run prebuild && node_modules/.bin/tsc --outDir distjs && tsc-esm-fix distjs"
     },
     "dependencies": {
+        "@fastify/swagger": "^9.6.1",
+        "@fastify/swagger-ui": "^5.2.3",
         "@sinclair/typebox": "^0.34.41",
+        "ajv": "^8.17.1",
+        "fastify": "^5.6.2",
         "minimist": "^1.2.8",
+        "node-llama-cpp": "^3.14.5",
         "vv-config-jsonc": "^1.0.6"
     }
 }

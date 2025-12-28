@@ -15,14 +15,7 @@ coverage
 logs
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-debug/log
-debug/ddl
-debug/promt
-debug/answer
-debug/LOG
-debug/DDL
-
-
+debug/testdata
 
 # dotenv environment variable files
 .env
