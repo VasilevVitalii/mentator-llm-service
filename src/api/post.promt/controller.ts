@@ -8,8 +8,8 @@ import { GetLama } from './additional/getLama'
 import { getGenerationParams } from './additional/getGenerationParams'
 import { Duration } from '../duration'
 import { GetSession } from './additional/getSession'
-
-const ajv = new Ajv()
+import { GetResponse } from './additional/getResponse'
+import { GetResponseValidation } from './additional/getResponseValidation'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -30,128 +30,89 @@ export async function controller(fastify: FastifyInstance) {
 			},
 		},
 		async (req, res) => {
-			const duration = new Duration()
-			const body = req.body
-
-			const llamaRes = await GetLama()
-			if (!llamaRes.ok) {
-				res.code(llamaRes.errorCode).send({
-					durationMsec: duration.getMsec(),
-					error: llamaRes.error,
-				})
-				return
-			}
-			const llama = llamaRes.result
-
-			const contextRes = await GetContext(llama, body.model)
-			if (!contextRes.ok) {
-				res.code(contextRes.errorCode).send({
-					durationMsec: duration.getMsec(),
-					error: contextRes.error,
-				})
-				return
-			}
-			const context = contextRes.result.context
-			const loadModelStatus = contextRes.result.loadModelStatus
-
-			const generationParamsRes = await getGenerationParams(
-				llama,
-				{
-					...fastify.appConfig.defaultOptions,
-					...body.options,
-				},
-				body.format,
-			)
-			if (!generationParamsRes.ok) {
-				res.code(generationParamsRes.errorCode).send({
-					durationMsec: duration.getMsec(),
-					error: generationParamsRes.error,
-				})
-				return
-			}
-			const generationParams = generationParamsRes.result
-
-			const sessionRes = GetSession(context, body.message.system)
-			if (!sessionRes.ok) {
-				res.code(sessionRes.errorCode).send({
-					durationMsec: duration.getMsec(),
-					error: sessionRes.error,
-				})
-				return
-			}
-			const session = sessionRes.result
-
-			let timeoutId = undefined as NodeJS.Timeout | undefined
-
 			try {
-				const abortController = new AbortController()
-				timeoutId = setTimeout(() => abortController.abort(), body.durationMsec)
+				const duration = new Duration()
+				const body = req.body
 
-				// Generate response with abort signal
-				const responseText = await session.prompt(body.message.user, {
-					...generationParams,
-					signal: abortController.signal,
-				})
-
-				// Parse and validate result
-				let parsedData: any
-				try {
-					// Remove markdown code blocks if present (```json ... ``` or ``` ... ```)
-					let cleanedText = responseText.trim()
-					const jsonMatch = cleanedText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
-					if (jsonMatch && jsonMatch[1]) {
-						cleanedText = jsonMatch[1].trim()
-					}
-
-					parsedData = JSON.parse(cleanedText)
-				} catch (parseError) {
-					res.code(400).send({
+				const llamaRes = await GetLama()
+				if (!llamaRes.ok) {
+					res.code(llamaRes.errorCode).send({
 						durationMsec: duration.getMsec(),
-						error: `Failed to parse JSON response: ${parseError}`,
+						error: llamaRes.error,
 					})
 					return
 				}
+				const llama = llamaRes.result
 
-				// Validate against JSON Schema if provided
-				if (body.format?.jsonSchema) {
-					const validate = ajv.compile(body.format.jsonSchema)
-					const isValid = validate(parsedData)
-					if (!isValid) {
-						res.code(400).send({
-							durationMsec: duration.getMsec(),
-							error: `JSON Schema validation failed: ${validate.errors?.map(e => `${e.instancePath} ${e.message}`).join('; ')}`,
-						})
-						return
-					}
+				const contextRes = await GetContext(llama, body.model)
+				if (!contextRes.ok) {
+					res.code(contextRes.errorCode).send({
+						durationMsec: duration.getMsec(),
+						error: contextRes.error,
+					})
+					return
+				}
+				const context = contextRes.result.context
+				const loadModelStatus = contextRes.result.loadModelStatus
+
+				const generationParamsRes = await getGenerationParams(
+					llama,
+					{
+						...fastify.appConfig.defaultOptions,
+						...body.options,
+					},
+					body.format,
+				)
+				if (!generationParamsRes.ok) {
+					res.code(generationParamsRes.errorCode).send({
+						durationMsec: duration.getMsec(),
+						error: generationParamsRes.error,
+					})
+					return
+				}
+				const generationParams = generationParamsRes.result
+
+				const sessionRes = GetSession(context, body.message.system)
+				if (!sessionRes.ok) {
+					res.code(sessionRes.errorCode).send({
+						durationMsec: duration.getMsec(),
+						error: sessionRes.error,
+					})
+					return
+				}
+				const session = sessionRes.result
+
+				const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec)
+				if (!responseRes.ok) {
+					res.code(responseRes.errorCode).send({
+						durationMsec: duration.getMsec(),
+						error: responseRes.error,
+					})
+					return
+				}
+				const responseJson = responseRes.result
+
+				const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
+				if (!responseValidationRes.ok) {
+					res.code(responseValidationRes.errorCode).send({
+						durationMsec: duration.getMsec(),
+						error: responseValidationRes.error,
+					})
+					return
 				}
 
 				res.code(200).send({
 					durationMsec: duration.getMsec(),
 					result: {
 						loadModelStatus: loadModelStatus,
-						data: parsedData,
+						data: responseJson,
 					},
 				})
-			} catch (generationError: any) {
-				if (generationError.name === 'AbortError') {
-					res.code(400).send({
-						durationMsec: duration.getMsec(),
-						error: `Generation timeout exceeded (${body.durationMsec}ms)`,
-					})
-				} else {
-					console.error('Generation error:', generationError)
-					res.code(500).send({
-						durationMsec: duration.getMsec(),
-						error: `Generation error: ${generationError.message}`,
-					})
-				}
-			} finally {
-				if (timeoutId) {
-					clearTimeout(timeoutId)
-				}
-				if (context) {
-					await context.dispose()
-				}
+			} catch (err) {
+				res.code(500).send({
+					durationMsec: 0,
+					error: `${err}`,
+				})
 			}
 		},
 	)
