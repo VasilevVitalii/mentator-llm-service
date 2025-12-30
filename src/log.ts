@@ -84,9 +84,49 @@ class LogClass {
 		const timestampISO = new Date(timestamp).toISOString()
 		this._console(level, `[${timestampISO}] [${level}] [${pipe}] ${message}`)
 		if (extra) {
+			// Limit extra output to first 200 chars per section for console
 			const lines = extra.split('\n')
+			let requestSection = ''
+			let responseSection = ''
+			let inRequest = false
+			let inResponse = false
+
 			for (const line of lines) {
-				this._console(level, `        ${line}`)
+				if (line.startsWith('Request:')) {
+					inRequest = true
+					inResponse = false
+					requestSection = line
+					continue
+				}
+				if (line.startsWith('Response:')) {
+					inResponse = true
+					inRequest = false
+					responseSection = line
+					continue
+				}
+				if (inRequest && requestSection.length < 200 + 8) {
+					// +8 for "Request:" prefix
+					requestSection += '\n' + line
+				}
+				if (inResponse && responseSection.length < 200 + 9) {
+					// +9 for "Response:" prefix
+					responseSection += '\n' + line
+				}
+			}
+
+			if (requestSection) {
+				const truncated = requestSection.length > 208 ? requestSection.substring(0, 208) + '...' : requestSection
+				const requestLines = truncated.split('\n')
+				for (const line of requestLines) {
+					this._console(level, `        ${line}`)
+				}
+			}
+			if (responseSection) {
+				const truncated = responseSection.length > 209 ? responseSection.substring(0, 209) + '...' : responseSection
+				const responseLines = truncated.split('\n')
+				for (const line of responseLines) {
+					this._console(level, `        ${line}`)
+				}
 			}
 		}
 	}

@@ -35,12 +35,27 @@ export async function Go(config: TConfig): Promise<void> {
 							const req = parsed.req
 							const res = parsed.res
 
+							// Skip all logs for /promt endpoint - it has custom logging
+							if (req && req.url === '/promt') {
+								return
+							}
+
 							let logMessage = message
 							if (req) {
 								logMessage = `${req.method} ${req.url}`
+								// Skip if this is /promt request
+								if (req.url === '/promt') {
+									return
+								}
 							}
 							if (res) {
 								logMessage += ` - ${res.statusCode}`
+							}
+
+							// Skip "request completed" messages - they don't have req.url
+							// We can't reliably filter them, so skip all completion messages
+							if (message.includes('request completed') || message.includes('Request completed')) {
+								return
 							}
 
 							if (level >= 50) {
