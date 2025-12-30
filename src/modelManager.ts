@@ -1,12 +1,10 @@
 import type { TResult } from './tresult'
 import { fsReadDir, fsReadDirSync } from './util/fsReadDir'
 import { singleton } from './util/singleton'
-import { ClassLogger, type TClassLogger } from './util/classLogger'
+import { ClassLogger } from './util/classLogger'
 import { basename, dirname, join } from 'path'
 
-export type TModelManagerClassParam = {
-	modelDir: string
-} & TClassLogger
+const PIPE = 'MODEL_MANAGER'
 
 export type TModelFile = {
 	relativeFileName: string
@@ -62,13 +60,13 @@ class ModelManagerClass extends ClassLogger {
 			logText = `${logText}${logText.length > 0 ? ' ' : ''}add model(s): "${fileNew.join('", "')}";`
 		}
 		if (logText.length > 0) {
-			this._onLog('_scanModelDir', logText)
+			this._onLog(logText)
 		}
 	}
 
-	constructor(param: TModelManagerClassParam) {
-		super('ModelManagerClass', param)
-		this._modelDir = param.modelDir
+	constructor(modelDir: string) {
+		super(PIPE)
+		this._modelDir = modelDir
 	}
 
 	scanModelDirStart(intervalMsec: number): void {

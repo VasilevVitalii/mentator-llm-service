@@ -5,7 +5,7 @@ console.log('hello, debug')
 Go({
     port: 8099,
     modelDir: '/home/vitalii/GGUF/',
-    workFile: '/debug/testdata/mentator-llm-service.db',
+    dbFile: '/home/vitalii/Work/mentator/mentator-llm-service/debug/testdata/mentator-llm-service.db',
     defaultOptions: {
         temperature: 0.0,
         topP: 0.1,
@@ -22,5 +22,9 @@ Go({
         penalizeNewline: false,
         stopSequences: [],
         trimWhitespace: true,
+    },
+    log: {
+        level: 'trace',
+        liveDay: 100
     }
 })

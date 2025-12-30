@@ -83,12 +83,13 @@
          в каком формате? вроде бы есть нечто типа Zod для этого
       }
  }
- ответ
+ ответ (если с кодом 200)
  {
    durationMsec: number,
-   loadModel: 'reload' | 'load' | 'exists'
-   result?: [] - вот тут ответ
-   error?: string - вот тут текст ошибки
+	result: {
+		loadModelStatus: 'load' | 'exists'
+		data: вот тут результат ответа модели в виде JSON
+   },
  }
 
 ## Ожидаемые преимущества

@@ -118,7 +118,10 @@ export const PromtRequestDto = Type.Object({
 })
 
 export const PromtResponseDto = Type.Object({
-	durationMsec: Type.Number({ description: 'Actual processing duration in milliseconds' }),
+	duration: Type.Object({
+		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
+		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
+	}),
 	result: Type.Object({
 		loadModelStatus: Type.Union([Type.Literal('load'), Type.Literal('exists')], {
 			description: 'Model loading status',

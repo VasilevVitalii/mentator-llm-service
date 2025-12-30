@@ -10,6 +10,7 @@ import { Duration } from '../duration'
 import { GetSession } from './additional/getSession'
 import { GetResponse } from './additional/getResponse'
 import { GetResponseValidation } from './additional/getResponseValidation'
+import { QueuePromt } from '../../queue'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -30,30 +31,24 @@ export async function controller(fastify: FastifyInstance) {
 			},
 		},
 		async (req, res) => {
-			try {
-				const duration = new Duration()
-				const body = req.body
+			const durationPromtAfterQueue = new Duration()
+			const body = req.body
+			const queue = QueuePromt()
 
+			try {
+				// Validate parameters before entering the queue
 				const llamaRes = await GetLama()
 				if (!llamaRes.ok) {
 					res.code(llamaRes.errorCode).send({
-						durationMsec: duration.getMsec(),
+						duration: {
+							promtMsec: durationPromtAfterQueue.getMsec(),
+							queueMsec: 0,
+						},
 						error: llamaRes.error,
 					})
 					return
 				}
 				const llama = llamaRes.result
-
-				const contextRes = await GetContext(llama, body.model)
-				if (!contextRes.ok) {
-					res.code(contextRes.errorCode).send({
-						durationMsec: duration.getMsec(),
-						error: contextRes.error,
-					})
-					return
-				}
-				const context = contextRes.result.context
-				const loadModelStatus = contextRes.result.loadModelStatus
 
 				const generationParamsRes = await getGenerationParams(
 					llama,
@@ -65,52 +60,102 @@ export async function controller(fastify: FastifyInstance) {
 				)
 				if (!generationParamsRes.ok) {
 					res.code(generationParamsRes.errorCode).send({
-						durationMsec: duration.getMsec(),
+						duration: {
+							promtMsec: durationPromtAfterQueue.getMsec(),
+							queueMsec: 0,
+						},
 						error: generationParamsRes.error,
 					})
 					return
 				}
 				const generationParams = generationParamsRes.result
 
-				const sessionRes = GetSession(context, body.message.system)
-				if (!sessionRes.ok) {
-					res.code(sessionRes.errorCode).send({
-						durationMsec: duration.getMsec(),
-						error: sessionRes.error,
-					})
-					return
-				}
-				const session = sessionRes.result
+				const durationPromtAfterQueueMsec = durationPromtAfterQueue.getMsec()
+				const durationQueue = new Duration()
 
-				const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec)
-				if (!responseRes.ok) {
-					res.code(responseRes.errorCode).send({
-						durationMsec: duration.getMsec(),
-						error: responseRes.error,
-					})
-					return
-				}
-				const responseJson = responseRes.result
+				await queue.add(async () => {
+					const queueMsec = durationQueue.getMsec()
+					const durationPromt = new Duration(durationPromtAfterQueueMsec)
 
-				const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
-				if (!responseValidationRes.ok) {
-					res.code(responseValidationRes.errorCode).send({
-						durationMsec: duration.getMsec(),
-						error: responseValidationRes.error,
-					})
-					return
-				}
+					try {
+						const contextRes = await GetContext(llama, body.model)
+						if (!contextRes.ok) {
+							res.code(contextRes.errorCode).send({
+								duration: {
+									promtMsec: durationPromt.getMsec(),
+									queueMsec: queueMsec,
+								},
+								error: contextRes.error,
+							})
+							return
+						}
+						const context = contextRes.result.context
+						const loadModelStatus = contextRes.result.loadModelStatus
 
-				res.code(200).send({
-					durationMsec: duration.getMsec(),
-					result: {
-						loadModelStatus: loadModelStatus,
-						data: responseJson,
-					},
+						const sessionRes = GetSession(context, body.message.system)
+						if (!sessionRes.ok) {
+							res.code(sessionRes.errorCode).send({
+								duration: {
+									promtMsec: durationPromt.getMsec(),
+									queueMsec: queueMsec,
+								},
+								error: sessionRes.error,
+							})
+							return
+						}
+						const session = sessionRes.result
+
+						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec)
+						if (!responseRes.ok) {
+							res.code(responseRes.errorCode).send({
+								duration: {
+									promtMsec: durationPromt.getMsec(),
+									queueMsec: queueMsec,
+								},
+								error: responseRes.error,
+							})
+							return
+						}
+						const responseJson = responseRes.result
+
+						const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
+						if (!responseValidationRes.ok) {
+							res.code(responseValidationRes.errorCode).send({
+								duration: {
+									promtMsec: durationPromt.getMsec(),
+									queueMsec: queueMsec,
+								},
+								error: responseValidationRes.error,
+							})
+							return
+						}
+
+						res.code(200).send({
+							duration: {
+								promtMsec: durationPromt.getMsec(),
+								queueMsec: queueMsec,
+							},
+							result: {
+								loadModelStatus: loadModelStatus,
+								data: responseJson,
+							},
+						})
+					} catch (err) {
+						res.code(500).send({
+							duration: {
+								promtMsec: durationPromt.getMsec(),
+								queueMsec: queueMsec,
+							},
+							error: `${err}`,
+						})
+					}
 				})
 			} catch (err) {
 				res.code(500).send({
-					durationMsec: 0,
+					duration: {
+						promtMsec: 0,
+						queueMsec: 0,
+					},
 					error: `${err}`,
 				})
 			}

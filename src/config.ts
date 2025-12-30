@@ -9,7 +9,7 @@ export const SConfig = Type.Object({
 		description: 'Full path to directory with model gguf files',
 		default: 'path/to/models',
 	}),
-	workFile: Type.String({
+	dbFile: Type.String({
 		description: 'File name (with full path) to sqlite file with working data',
 		default: 'path/to/mentator-llm-service.db',
 	}),
@@ -104,6 +104,18 @@ export const SConfig = Type.Object({
 				minimum: 0,
 			}),
 		),
+	}),
+	log: Type.Object({
+		level: Type.Union([Type.Literal('error'), Type.Literal('debug'), Type.Literal('trace')], {
+			description: 'Logging level: error (only errors), debug (errors + debug), trace (all messages)',
+			default: 'debug',
+		}),
+		liveDay: Type.Integer({
+			description: 'Number of days to keep logs in database (older logs will be deleted automatically)',
+			default: 30,
+			minimum: 1,
+			maximum: 365,
+		}),
 	}),
 })
 export type TConfig = Static<typeof SConfig>

@@ -1,6 +1,7 @@
 import { type LlamaModel, type LlamaContext, type Llama } from 'node-llama-cpp'
 import { ModelManager, type TModelFile } from '../../../modelManager'
 import type { TResultCode } from '../../../tresult'
+import { Log } from '../../../log';
 
 let data: { model: LlamaModel; modelInfo: TModelFile } | undefined = undefined
 
@@ -24,6 +25,9 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 			loadModelStatus = 'load'
 		}
 		const context = await data.model.createContext()
+		if (loadModelStatus === 'load') {
+			Log().debug('POST.PROMT', `in memory load model "${data.modelInfo.name}" (${Math.floor(data.modelInfo.sizeKb / 1024)} mb)`)
+		}
 
 		return { ok: true, result: { context, loadModelStatus } }
 	} catch (err) {

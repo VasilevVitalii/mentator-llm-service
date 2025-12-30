@@ -1,22 +1,17 @@
-export type TClassLogger = {
-	onErrorCore: (text: string) => void,
-	onLogCore: (text: string) => void
-}
+import { Log } from '../log'
 
 export abstract class ClassLogger {
-	private _className: string
-	private _callback: TClassLogger
+	private _pipe: string
 
-	constructor(className: string, callback: TClassLogger) {
-		this._className = className
-		this._callback = callback
+	constructor(pipe: string) {
+		this._pipe = pipe
 	}
 
-	protected _onError(func: string, text: string): void {
-		this._callback.onErrorCore(`${this._className}.${func}: ${text}`)
+	protected _onError(pipe: string, text: string): void {
+		Log().error(`${this._pipe}`, `${pipe}: ${text}`)
 	}
 
-	protected _onLog(func: string, text: string): void {
-		this._callback.onLogCore(`${this._className}.${func}: ${text}`)
+	protected _onLog(text: string): void {
+		Log().debug(`${this._pipe}`, `${text}`)
 	}
 }
