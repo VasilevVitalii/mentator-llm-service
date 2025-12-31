@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,85 @@
         </div>
 
         <div class="main-content">
-            <p>Эта страница пока не реализована.</p>
+            <div class="chat-container">
+                <!-- Top section -->
+                <div class="chat-top-section" :style="{ height: topHeight + 'px' }">
+                    <!-- Row 1: Type, Model, Format, Options -->
+                    <div class="form-row">
+                        <div class="form-group fixed-width">
+                            <span class="form-label">type</span>
+                            <select v-model="messageType" class="form-select">
+                                <option value="system">system</option>
+                                <option value="user">user</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-1">
+                            <span class="form-label">model</span>
+                            <select v-model="selectedModel" class="form-select">
+                                <option v-for="model in models" :key="model" :value="model">{{ model }}</option>
+                            </select>
+                        </div>
+                        <button class="form-button width-120" @click="onFormatClick">format</button>
+                        <button class="form-button width-120" @click="onOptionsClick">options</button>
+                    </div>
+
+                    <!-- Row 2: Request textarea -->
+                    <div class="textarea-container">
+                        <div class="form-group" style="flex: 1; display: flex;">
+                            <span class="form-label" ref="requestLabel">request</span>
+                            <textarea
+                                v-model="request"
+                                class="form-textarea"
+                                placeholder="Enter your request here..."
+                                spellcheck="false"
+                                @scroll="onRequestScroll"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Load, Save and Send buttons -->
+                    <div class="button-group button-group-space-between">
+                        <div class="button-group">
+                            <button class="form-button width-120" @click="onLoadClick">load</button>
+                            <button class="form-button width-120" @click="onSaveClick">save</button>
+                        </div>
+                        <button class="form-button width-120" @click="onSendClick">send</button>
+                    </div>
+                </div>
+
+                <!-- Splitter -->
+                <div
+                    class="splitter"
+                    @mousedown="startDrag"
+                    @touchstart="startDrag"
+                ></div>
+
+                <!-- Bottom section -->
+                <div class="chat-bottom-section" :style="{ height: bottomHeight + 'px' }">
+                    <!-- Row 5: Response textarea -->
+                    <div class="textarea-container">
+                        <div class="form-group" style="flex: 1; display: flex;">
+                            <span class="form-label" ref="responseLabel">response</span>
+                            <textarea
+                                v-model="response"
+                                class="form-textarea"
+                                placeholder="Response will appear here..."
+                                spellcheck="false"
+                                readonly
+                                @scroll="onResponseScroll"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Export buttons -->
+                    <div class="button-group">
+                        <button class="form-button width-220" @click="onCopyAllClick">to clipboard all</button>
+                        <button class="form-button width-220" @click="onCopyPayloadClick">to clipboard payload</button>
+                        <button class="form-button width-220" @click="onSaveAllClick">to file all</button>
+                        <button class="form-button width-220" @click="onSavePayloadClick">to file payload</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -27,10 +105,25 @@
         createApp({
             data() {
                 return {
-                    version: '0.0.0'
+                    version: '0.0.0',
+                    messageType: 'user',
+                    selectedModel: 'model-1',
+                    models: [
+                        'model-1',
+                        'model-2',
+                        'model-3'
+                    ],
+                    request: '',
+                    response: '',
+                    topHeight: 0,
+                    bottomHeight: 0,
+                    isDragging: false,
+                    startY: 0,
+                    startTopHeight: 0
                 }
             },
             mounted() {
+                // Load version
                 fetch('/api/version')
                     .then(res => res.json())
                     .then(data => {
@@ -39,6 +132,137 @@
                     .catch(err => {
                         console.error('Failed to load version:', err)
                     })
+
+                // Initialize heights
+                this.initializeHeights()
+
+                // Add global mouse/touch event listeners
+                document.addEventListener('mousemove', this.onDrag)
+                document.addEventListener('mouseup', this.stopDrag)
+                document.addEventListener('touchmove', this.onDrag)
+                document.addEventListener('touchend', this.stopDrag)
+
+                // Handle window resize
+                window.addEventListener('resize', this.initializeHeights)
+            },
+            beforeUnmount() {
+                document.removeEventListener('mousemove', this.onDrag)
+                document.removeEventListener('mouseup', this.stopDrag)
+                document.removeEventListener('touchmove', this.onDrag)
+                document.removeEventListener('touchend', this.stopDrag)
+                window.removeEventListener('resize', this.initializeHeights)
+            },
+            methods: {
+                initializeHeights() {
+                    const container = document.querySelector('.chat-container')
+                    if (!container) return
+
+                    const totalHeight = container.clientHeight
+                    const splitterHeight = 8
+                    const topRowsHeight = 48 + 12 + 48 + 12 // two rows + gaps
+                    const bottomRowHeight = 48 + 12 // one row + gap
+                    const availableHeight = totalHeight - splitterHeight - topRowsHeight - bottomRowHeight
+
+                    // Load saved position from localStorage or use 50/50 split
+                    const savedRatio = localStorage.getItem('chat-splitter-ratio')
+                    const ratio = savedRatio ? parseFloat(savedRatio) : 0.5
+
+                    this.topHeight = topRowsHeight + (availableHeight * ratio)
+                    this.bottomHeight = bottomRowHeight + (availableHeight * (1 - ratio))
+                },
+                startDrag(e) {
+                    this.isDragging = true
+                    this.startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY
+                    this.startTopHeight = this.topHeight
+                    e.preventDefault()
+                },
+                onDrag(e) {
+                    if (!this.isDragging) return
+
+                    const currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY
+                    const deltaY = currentY - this.startY
+
+                    const container = document.querySelector('.chat-container')
+                    const totalHeight = container.clientHeight
+                    const splitterHeight = 8
+                    const topRowsHeight = 48 + 12 + 48 + 12
+                    const bottomRowHeight = 48 + 12
+                    const availableHeight = totalHeight - splitterHeight - topRowsHeight - bottomRowHeight
+
+                    let newTopHeight = this.startTopHeight + deltaY
+                    let newBottomHeight = totalHeight - newTopHeight - splitterHeight
+
+                    // Calculate ratio for the available (textarea) space
+                    const topTextareaHeight = newTopHeight - topRowsHeight
+                    const ratio = topTextareaHeight / availableHeight
+
+                    // Enforce ratio limits: 0.2 to 0.8
+                    if (ratio < 0.2) {
+                        newTopHeight = topRowsHeight + (availableHeight * 0.2)
+                        newBottomHeight = totalHeight - newTopHeight - splitterHeight
+                    } else if (ratio > 0.8) {
+                        newTopHeight = topRowsHeight + (availableHeight * 0.8)
+                        newBottomHeight = totalHeight - newTopHeight - splitterHeight
+                    }
+
+                    this.topHeight = newTopHeight
+                    this.bottomHeight = newBottomHeight
+                },
+                stopDrag() {
+                    if (this.isDragging) {
+                        this.isDragging = false
+                        this.saveSplitterPosition()
+                    }
+                },
+                saveSplitterPosition() {
+                    const container = document.querySelector('.chat-container')
+                    const totalHeight = container.clientHeight
+                    const topRowsHeight = 48 + 12 + 48 + 12
+                    const bottomRowHeight = 48 + 12
+                    const availableHeight = totalHeight - 8 - topRowsHeight - bottomRowHeight
+
+                    const ratio = (this.topHeight - topRowsHeight) / availableHeight
+                    localStorage.setItem('chat-splitter-ratio', ratio.toString())
+                },
+                onFormatClick() {
+                    console.log('Format button clicked')
+                },
+                onOptionsClick() {
+                    console.log('Options button clicked')
+                },
+                onLoadClick() {
+                    console.log('Load button clicked')
+                },
+                onSaveClick() {
+                    console.log('Save button clicked')
+                },
+                onSendClick() {
+                    console.log('Send button clicked')
+                },
+                onCopyAllClick() {
+                    console.log('Copy all to clipboard')
+                },
+                onCopyPayloadClick() {
+                    console.log('Copy payload to clipboard')
+                },
+                onSaveAllClick() {
+                    console.log('Save all to file')
+                },
+                onSavePayloadClick() {
+                    console.log('Save payload to file')
+                },
+                onRequestScroll(e) {
+                    const scrollTop = e.target.scrollTop
+                    if (this.$refs.requestLabel) {
+                        this.$refs.requestLabel.style.opacity = scrollTop > 0 ? '0' : '1'
+                    }
+                },
+                onResponseScroll(e) {
+                    const scrollTop = e.target.scrollTop
+                    if (this.$refs.responseLabel) {
+                        this.$refs.responseLabel.style.opacity = scrollTop > 0 ? '0' : '1'
+                    }
+                }
             }
         }).mount('#app')
     </script>

@@ -1,9 +1,9 @@
 :root {
     /* Main colors */
     --b-main1: #006363;         /* темно-зеленый */
-    --b-main2: #00636308;       /* 5% от main */
+    --b-main2: #00636310;       /* 5% от main */
     --b-warn1: #A64B00;         /* темно-оранжевый */
-    --b-warn2: #A64B0008;       /* 5% от warn */
+    --b-warn2: #A64B0010;       /* 5% от warn */
     --f-main1: #ffffff;         /* белый */
     --f-main2: #000000;         /* черный */
 }
@@ -96,4 +96,164 @@ body {
 /* Main content area */
 .main-content {
     padding: 20px;
+}
+
+/* Form controls */
+.form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+}
+
+.form-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.flex-1 {
+    flex: 1;
+}
+
+.form-group.fixed-width {
+    width: 150px;
+}
+
+.form-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 0 4px;
+    font-size: 11px;
+    color: #999;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.form-select,
+.form-textarea,
+.form-button {
+    height: 48px;
+    padding: 20px 12px 12px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    background-color: white;
+    color: var(--f-main2);
+}
+
+.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23006363' d='M6 8L0 0h12z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 8px;
+    padding-right: 36px;
+}
+
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--b-main1);
+}
+
+.form-textarea {
+    resize: none;
+    height: 100%;
+    min-height: 100px;
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.form-button {
+    cursor: pointer;
+    background-color: var(--b-main2);
+    border: 1px solid var(--b-main1);
+    color: var(--b-main1);
+    transition: all 0.2s;
+    white-space: nowrap;
+    padding: 12px 16px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.form-button.width-120 {
+    width: 120px;
+}
+
+.form-button.width-220 {
+    width: 220px;
+}
+
+.form-button:hover {
+    background-color: var(--b-main1);
+    color: var(--f-main1);
+}
+
+.form-button:active {
+    transform: scale(0.98);
+}
+
+/* Chat layout */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 150px);
+    gap: 12px;
+}
+
+.chat-top-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-bottom-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.textarea-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+}
+
+/* Splitter */
+.splitter {
+    height: 8px;
+    background-color: var(--b-main2);
+    cursor: row-resize;
+    position: relative;
+    user-select: none;
+}
+
+.splitter:hover {
+    background-color: var(--b-main1);
+}
+
+.splitter:active {
+    background-color: var(--b-main1);
+}
+
+/* Button group */
+.button-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.button-group-left {
+    justify-content: flex-start;
+}
+
+.button-group-space-between {
+    justify-content: space-between;
 }
