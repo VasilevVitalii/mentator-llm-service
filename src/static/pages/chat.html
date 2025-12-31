@@ -96,6 +96,48 @@
                 </div>
             </div>
         </div>
+
+        <!-- Format Modal -->
+        <div v-if="formatModalOpen" class="modal-backdrop" @click.self="onFormatCancel" @keydown.esc="onFormatCancel">
+            <div class="modal-window" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+                <h2 id="modal-title" class="modal-title">Format Response</h2>
+
+                <div class="modal-form-group">
+                    <textarea
+                        ref="formatTextarea"
+                        v-model="formatSchema"
+                        class="modal-textarea"
+                        :class="formatValidationClass"
+                        placeholder="Enter JSON Schema..."
+                        spellcheck="false"
+                        @input="onFormatTextareaInput"
+                    ></textarea>
+                    <div v-if="formatErrorMessage" class="modal-error">{{ formatErrorMessage }}</div>
+                </div>
+
+                <div class="modal-controls">
+                    <div class="modal-left-controls">
+                        <button class="form-button width-120" @click="onFormatCheck">check</button>
+                        <div class="modal-checkbox-group" title="Convert JSON Schema to GBNF grammar to enforce valid JSON output from LLM">
+                            <input
+                                type="checkbox"
+                                id="use-grammar"
+                                v-model="formatUseGrammar"
+                            />
+                            <label for="use-grammar">use grammar</label>
+                        </div>
+                    </div>
+                    <div class="modal-right-controls">
+                        <button class="form-button width-120" @click="onFormatOk">ok</button>
+                        <button class="form-button width-120 button-cancel" @click="onFormatCancel">cancel</button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a href="https://json-schema.org/understanding-json-schema" target="_blank" class="modal-link">JSON Schema Documentation</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
@@ -119,7 +161,20 @@
                     bottomHeight: 0,
                     isDragging: false,
                     startY: 0,
-                    startTopHeight: 0
+                    startTopHeight: 0,
+                    // Format modal state
+                    formatModalOpen: false,
+                    formatSchema: '',
+                    formatUseGrammar: true,
+                    formatValidationState: null, // null, 'valid', or 'invalid'
+                    formatErrorMessage: ''
+                }
+            },
+            computed: {
+                formatValidationClass() {
+                    if (this.formatValidationState === 'valid') return 'valid'
+                    if (this.formatValidationState === 'invalid') return 'invalid'
+                    return ''
                 }
             },
             mounted() {
@@ -144,6 +199,9 @@
 
                 // Handle window resize
                 window.addEventListener('resize', this.initializeHeights)
+
+                // Handle ESC key globally
+                document.addEventListener('keydown', this.handleEscKey)
             },
             beforeUnmount() {
                 document.removeEventListener('mousemove', this.onDrag)
@@ -151,8 +209,58 @@
                 document.removeEventListener('touchmove', this.onDrag)
                 document.removeEventListener('touchend', this.stopDrag)
                 window.removeEventListener('resize', this.initializeHeights)
+                document.removeEventListener('keydown', this.handleEscKey)
             },
             methods: {
+                // Format modal - localStorage helpers
+                loadFormatSettings() {
+                    try {
+                        const saved = localStorage.getItem('format')
+                        if (saved) {
+                            const parsed = JSON.parse(saved)
+                            this.formatSchema = parsed.schema || this.getDefaultSchema()
+                            this.formatUseGrammar = parsed.useGrammar !== undefined ? parsed.useGrammar : true
+                        } else {
+                            this.formatSchema = this.getDefaultSchema()
+                            this.formatUseGrammar = true
+                        }
+                    } catch (err) {
+                        console.error('Failed to load format settings:', err)
+                        this.formatSchema = this.getDefaultSchema()
+                        this.formatUseGrammar = true
+                    }
+                },
+                saveFormatSettings() {
+                    try {
+                        const settings = {
+                            schema: this.formatSchema,
+                            useGrammar: this.formatUseGrammar
+                        }
+                        localStorage.setItem('format', JSON.stringify(settings))
+                    } catch (err) {
+                        console.error('Failed to save format settings:', err)
+                        if (err.name === 'QuotaExceededError') {
+                            alert('Failed to save: localStorage quota exceeded. Please reduce the schema size.')
+                        }
+                    }
+                },
+                getDefaultSchema() {
+                    return `{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "age": {
+        "type": "number"
+      }
+    },
+    "required": ["name", "age"]
+  }
+}`
+                },
                 initializeHeights() {
                     const container = document.querySelector('.chat-container')
                     if (!container) return
@@ -225,7 +333,55 @@
                     localStorage.setItem('chat-splitter-ratio', ratio.toString())
                 },
                 onFormatClick() {
-                    console.log('Format button clicked')
+                    this.loadFormatSettings()
+                    this.formatValidationState = null
+                    this.formatErrorMessage = ''
+                    this.formatModalOpen = true
+
+                    this.$nextTick(() => {
+                        if (this.$refs.formatTextarea) {
+                            this.$refs.formatTextarea.focus()
+                        }
+                    })
+                },
+                async onFormatCheck() {
+                    try {
+                        const schema = JSON.parse(this.formatSchema)
+
+                        const response = await fetch('/api/checkformat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ schema }),
+                        })
+
+                        const result = await response.json()
+
+                        if (result.valid) {
+                            this.formatValidationState = 'valid'
+                            this.formatErrorMessage = ''
+                        } else {
+                            this.formatValidationState = 'invalid'
+                            this.formatErrorMessage = result.error || 'Invalid JSON Schema'
+                        }
+                    } catch (err) {
+                        this.formatValidationState = 'invalid'
+                        this.formatErrorMessage = err.message || 'Failed to validate schema'
+                    }
+                },
+                onFormatTextareaInput() {
+                    this.formatValidationState = null
+                    this.formatErrorMessage = ''
+                },
+                onFormatOk() {
+                    this.saveFormatSettings()
+                    this.formatModalOpen = false
+                },
+                onFormatCancel() {
+                    this.formatModalOpen = false
+                    this.formatValidationState = null
+                    this.formatErrorMessage = ''
                 },
                 onOptionsClick() {
                     console.log('Options button clicked')
@@ -261,6 +417,11 @@
                     const scrollTop = e.target.scrollTop
                     if (this.$refs.responseLabel) {
                         this.$refs.responseLabel.style.opacity = scrollTop > 0 ? '0' : '1'
+                    }
+                },
+                handleEscKey(e) {
+                    if (e.key === 'Escape' && this.formatModalOpen) {
+                        this.onFormatCancel()
                     }
                 }
             }

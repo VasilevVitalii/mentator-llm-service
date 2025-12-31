@@ -257,3 +257,151 @@ body {
 .button-group-space-between {
     justify-content: space-between;
 }
+
+/* Modal styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-window {
+    background-color: white;
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 600px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+    background-color: var(--b-main1);
+    color: var(--f-main1);
+    padding: 12px 24px;
+    margin: -24px -24px 16px -24px;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.modal-form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+}
+
+.modal-textarea {
+    width: 100%;
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.modal-textarea:focus {
+    outline: none;
+    border-color: var(--b-main1);
+}
+
+.modal-textarea.valid {
+    background-color: var(--b-main2);
+    border-color: var(--b-main1);
+}
+
+.modal-textarea.invalid {
+    background-color: var(--b-warn2);
+    border-color: var(--b-warn1);
+}
+
+.modal-error {
+    color: var(--b-warn1);
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 8px;
+    background-color: var(--b-warn2);
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+}
+
+.modal-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.modal-left-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.modal-right-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.modal-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.modal-checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--b-main1);
+}
+
+.modal-checkbox-group label {
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.button-cancel {
+    background-color: var(--b-warn2);
+    border-color: var(--b-warn1);
+    color: var(--b-warn1);
+}
+
+.button-cancel:hover {
+    background-color: var(--b-warn1);
+    color: var(--f-main1);
+}
+
+.modal-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd;
+    text-align: center;
+}
+
+.modal-link {
+    color: var(--b-main1);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.modal-link:hover {
+    text-decoration: underline;
+}

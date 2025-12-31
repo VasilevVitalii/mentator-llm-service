@@ -37,8 +37,8 @@ export async function Go(config: TConfig): Promise<void> {
 							const req = parsed.req
 							const res = parsed.res
 
-							// Skip all logs for /promt endpoint - it has custom logging
-							if (req && req.url === '/promt') {
+							// Skip all logs for /promt and /api/checkformat endpoints - they have custom logging
+							if (req && (req.url === '/promt' || req.url === '/api/checkformat')) {
 								return
 							}
 
