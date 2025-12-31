@@ -116,6 +116,10 @@ export const SConfig = Type.Object({
 			minimum: 1,
 			maximum: 365,
 		}),
+		savePromt: Type.Boolean({
+			description: 'Save full request/response text for /promt endpoint in promtExtra table',
+			default: false,
+		}),
 	}),
 })
 export type TConfig = Static<typeof SConfig>

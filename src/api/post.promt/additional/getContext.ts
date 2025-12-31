@@ -9,13 +9,18 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 	try {
 		let loadModelStatus = 'exists' as 'exists' | 'load'
 		if (!data || data.modelInfo.name !== name) {
-			if (data?.model) {
-				await data.model.dispose()
-			}
 			const modelInfo = ModelManager().getModel(name)
 			if (!modelInfo) {
-				data = undefined
 				return { ok: false, error: `Model not found: "${name}"`, errorCode: 400 }
+			}
+
+			if (data?.model) {
+				try {
+					await data.model.dispose()
+				} catch (err) {
+					Log().error('POST.PROMT', `error disposing old model "${data.modelInfo.name}": ${err}`)
+				}
+				data = undefined
 			}
 			const model = await llama.loadModel({ modelPath: modelInfo.fullFileName })
 			data = {

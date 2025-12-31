@@ -24,7 +24,8 @@ Go({
         trimWhitespace: true,
     },
     log: {
-        level: 'trace',
-        liveDay: 100
+        level: 'debug',
+        liveDay: 100,
+        savePromt: true
     }
 })

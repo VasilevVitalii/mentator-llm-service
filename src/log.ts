@@ -8,41 +8,12 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 	debug: 1,
 	trace: 2,
 }
-const PIPE = 'logger'
 const CLEANUP_INTERVAL_MS = 1000 * 60 * 60
 
 class LogClass {
 	private _level: LogLevel = 'debug'
 	private _liveDay: number = 30
 	private _lastCleanup: number = 0
-	private _allowDb: boolean = true
-
-	private _initTables() {
-		try {
-			const db = Db()
-			db.read(conn => {
-				conn.run(`
-				CREATE TABLE IF NOT EXISTS log (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					ts INTEGER NOT NULL,
-					pipe TEXT NOT NULL,
-					kind TEXT NOT NULL,
-					message TEXT NOT NULL
-				)
-			`)
-				conn.run(`
-				CREATE TABLE IF NOT EXISTS logExtra (
-					id INTEGER NOT NULL,
-					data TEXT NOT NULL,
-					FOREIGN KEY (id) REFERENCES log(id) ON DELETE CASCADE
-				)
-			`)
-				conn.run(`CREATE INDEX IF NOT EXISTS idx_log_ts ON log(ts)`)
-			})
-		} catch (err) {
-			this.error(PIPE, `on create tables in db: ${err}`)
-		}
-	}
 
 	private _scheduleCleanup() {
 		setInterval(() => {
@@ -52,20 +23,13 @@ class LogClass {
 	}
 
 	private _cleanupOldLogs() {
-		try {
-			const now = Date.now()
-			if (now - this._lastCleanup < CLEANUP_INTERVAL_MS) return
+		const now = Date.now()
+		if (now - this._lastCleanup < CLEANUP_INTERVAL_MS) return
 
-			this._lastCleanup = now
-			const cutoffTimestamp = now - this._liveDay * 24 * 60 * 60 * 1000
+		this._lastCleanup = now
+		const cutoffTimestamp = now - this._liveDay * 24 * 60 * 60 * 1000
 
-			Db().edit(conn => {
-				conn.run('DELETE FROM logExtra WHERE id IN (SELECT id FROM log WHERE ts < ?)', [cutoffTimestamp])
-				conn.run('DELETE FROM log WHERE ts < ?', [cutoffTimestamp])
-			})
-		} catch (err) {
-			this.error(PIPE, `on clear old log: ${err}`)
-		}
+		Db().editCleanupOldLogs(cutoffTimestamp)
 	}
 
 	private _shouldLog(level: LogLevel): boolean {
@@ -105,11 +69,9 @@ class LogClass {
 					continue
 				}
 				if (inRequest && requestSection.length < 200 + 8) {
-					// +8 for "Request:" prefix
 					requestSection += '\n' + line
 				}
 				if (inResponse && responseSection.length < 200 + 9) {
-					// +9 for "Response:" prefix
 					responseSection += '\n' + line
 				}
 			}
@@ -131,55 +93,88 @@ class LogClass {
 		}
 	}
 
-	private _logToDb(timestamp: number, level: LogLevel, pipe: string, message: string, extra?: string) {
-		if (!this._allowDb) return
-
-		Db()
-			.edit(conn => {
-				const stmt = conn.prepare('INSERT INTO log (ts, pipe, kind, message) VALUES (?, ?, ?, ?)')
-				const result = stmt.run(timestamp, pipe, level, message)
-				const logId = result.lastInsertRowid
-
-				if (extra) {
-					const stmtExtra = conn.prepare('INSERT INTO logExtra (id, data) VALUES (?, ?)')
-					stmtExtra.run(logId, extra)
-				}
-			})
-			.catch(err => {
-				this._allowDb = false
-				this.error(PIPE, `on write log to db: ${err}`)
-			})
-	}
-
 	constructor(config: { level: LogLevel; liveDay: number }) {
 		this._level = config.level
 		this._liveDay = config.liveDay
-		this._initTables()
 		this._scheduleCleanup()
 	}
 
-	error(pipe: string, message: string, extra?: string): void {
+	error(param: { pipe: string; message: string; extra?: string; ts?: number }): void
+	error(pipe: string, message: string, extra?: string): void
+	error(pipeOrParam: string | { pipe: string; message: string; extra?: string; ts?: number }, message?: string, extra?: string): void {
 		if (!this._shouldLog('error')) return
 
-		const timestamp = Date.now()
-		this._logToConsole(timestamp, 'error', pipe, message, extra)
-		this._logToDb(timestamp, 'error', pipe, message, extra)
+		let pipe: string
+		let msg: string
+		let ext: string | undefined
+		let timestamp: number
+
+		if (typeof pipeOrParam === 'string') {
+			pipe = pipeOrParam
+			msg = message!
+			ext = extra
+			timestamp = Date.now()
+		} else {
+			pipe = pipeOrParam.pipe
+			msg = pipeOrParam.message
+			ext = pipeOrParam.extra
+			timestamp = pipeOrParam.ts ?? Date.now()
+		}
+
+		this._logToConsole(timestamp, 'error', pipe, msg, ext)
+		Db().editSaveLog('error', pipe, msg, ext, timestamp)
 	}
 
-	debug(pipe: string, message: string, extra?: string): void {
+	debug(param: { pipe: string; message: string; extra?: string; ts?: number }): void
+	debug(pipe: string, message: string, extra?: string): void
+	debug(pipeOrParam: string | { pipe: string; message: string; extra?: string; ts?: number }, message?: string, extra?: string): void {
 		if (!this._shouldLog('debug')) return
 
-		const timestamp = Date.now()
-		this._logToConsole(timestamp, 'debug', pipe, message, extra)
-		this._logToDb(timestamp, 'debug', pipe, message, extra)
+		let pipe: string
+		let msg: string
+		let ext: string | undefined
+		let timestamp: number
+
+		if (typeof pipeOrParam === 'string') {
+			pipe = pipeOrParam
+			msg = message!
+			ext = extra
+			timestamp = Date.now()
+		} else {
+			pipe = pipeOrParam.pipe
+			msg = pipeOrParam.message
+			ext = pipeOrParam.extra
+			timestamp = pipeOrParam.ts ?? Date.now()
+		}
+
+		this._logToConsole(timestamp, 'debug', pipe, msg, ext)
+		Db().editSaveLog('debug', pipe, msg, ext, timestamp)
 	}
 
-	trace(pipe: string, message: string, extra?: string): void {
+	trace(param: { pipe: string; message: string; extra?: string; ts?: number }): void
+	trace(pipe: string, message: string, extra?: string): void
+	trace(pipeOrParam: string | { pipe: string; message: string; extra?: string; ts?: number }, message?: string, extra?: string): void {
 		if (!this._shouldLog('trace')) return
 
-		const timestamp = Date.now()
-		this._logToConsole(timestamp, 'trace', pipe, message, extra)
-		this._logToDb(timestamp, 'trace', pipe, message, extra)
+		let pipe: string
+		let msg: string
+		let ext: string | undefined
+		let timestamp: number
+
+		if (typeof pipeOrParam === 'string') {
+			pipe = pipeOrParam
+			msg = message!
+			ext = extra
+			timestamp = Date.now()
+		} else {
+			pipe = pipeOrParam.pipe
+			msg = pipeOrParam.message
+			ext = pipeOrParam.extra
+			timestamp = pipeOrParam.ts ?? Date.now()
+		}
+
+		this._logToConsole(timestamp, 'trace', pipe, msg, ext)
+		Db().editSaveLog('trace', pipe, msg, ext, timestamp)
 	}
 }
 
