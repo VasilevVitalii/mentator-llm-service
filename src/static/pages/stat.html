@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - Mentator LLM Service</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+</head>
+<body>
+    <div id="app">
+        <div class="banner">
+            <div class="banner-title">
+                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+            </div>
+            <div class="banner-subtitle">statistics</div>
+        </div>
+
+        <div class="main-content">
+            <p>Эта страница пока не реализована.</p>
+        </div>
+    </div>
+
+    <script src="/static/lib/vue.global.prod.js"></script>
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    version: '0.0.0'
+                }
+            },
+            mounted() {
+                fetch('/api/version')
+                    .then(res => res.json())
+                    .then(data => {
+                        this.version = data.version
+                    })
+                    .catch(err => {
+                        console.error('Failed to load version:', err)
+                    })
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

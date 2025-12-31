@@ -1,0 +1,99 @@
+:root {
+    /* Main colors */
+    --b-main1: #006363;         /* темно-зеленый */
+    --b-main2: #00636308;       /* 5% от main */
+    --b-warn1: #A64B00;         /* темно-оранжевый */
+    --b-warn2: #A64B0008;       /* 5% от warn */
+    --f-main1: #ffffff;         /* белый */
+    --f-main2: #000000;         /* черный */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--b-main2);
+    color: var(--f-main2);
+}
+
+/* Banner styles */
+.banner {
+    background-color: var(--b-main1);
+    color: var(--f-main1);
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.banner-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.banner-title a {
+    color: var(--f-main1);
+    text-decoration: none;
+}
+
+.banner-title a:hover {
+    text-decoration: underline;
+}
+
+.banner-subtitle {
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+/* Card container */
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    justify-content: flex-start;
+}
+
+/* Card styles */
+.card {
+    flex: 1 1 300px;
+    min-width: 300px;
+    max-width: 400px;
+    height: 150px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--f-main2);
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: var(--b-main1);
+}
+
+.card-description {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Main content area */
+.main-content {
+    padding: 20px;
+}

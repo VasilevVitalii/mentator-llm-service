@@ -1,12 +1,14 @@
 import { type TConfig } from './config'
-import Fastify from 'fastify'
+import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
+import fastifyStatic from '@fastify/static'
 import { controllers } from './api/index'
 import { ModelManager } from './modelManager'
 import { QueuePromt } from './queue'
 import { Db } from './db'
 import { Log } from './log'
+import { join } from 'path'
 
 export async function Go(config: TConfig): Promise<void> {
 	let fastify: ReturnType<typeof Fastify> | undefined
@@ -40,22 +42,23 @@ export async function Go(config: TConfig): Promise<void> {
 								return
 							}
 
+							// Skip GET requests - they have custom logging via onResponse hook
+							if (req && req.method === 'GET') {
+								return
+							}
+
+							// Skip "request completed" messages
+							if (message.includes('request completed') || message.includes('Request completed')) {
+								return
+							}
+
+							// For non-GET requests, use standard logging
 							let logMessage = message
 							if (req) {
 								logMessage = `${req.method} ${req.url}`
-								// Skip if this is /promt request
-								if (req.url === '/promt') {
-									return
-								}
 							}
 							if (res) {
 								logMessage += ` - ${res.statusCode}`
-							}
-
-							// Skip "request completed" messages - they don't have req.url
-							// We can't reliably filter them, so skip all completion messages
-							if (message.includes('request completed') || message.includes('Request completed')) {
-								return
 							}
 
 							if (level >= 50) {
@@ -91,6 +94,28 @@ export async function Go(config: TConfig): Promise<void> {
 
 		await fastify.register(fastifySwaggerUi, {
 			routePrefix: '/doc',
+		})
+
+		await fastify.register(fastifyStatic, {
+			root: join(__dirname, 'static'),
+			prefix: '/static/',
+		})
+
+		// Custom logging for GET requests
+		fastify.addHook('onResponse', (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
+			if (request.method === 'GET' && request.url !== '/promt') {
+				const statusCode = reply.statusCode
+				const url = request.url
+				const pipe = `GET.${statusCode}`
+
+				// Success: 2xx and 304 (Not Modified)
+				if ((statusCode >= 200 && statusCode < 300) || statusCode === 304) {
+					Log().trace(pipe, url)
+				} else {
+					Log().error(pipe, url)
+				}
+			}
+			done()
 		})
 
 		for (const controller of controllers) {

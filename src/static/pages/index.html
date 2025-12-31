@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Mentator LLM Service</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+</head>
+<body>
+    <div id="app">
+        <div class="banner">
+            <div class="banner-title">
+                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+            </div>
+            <div class="banner-subtitle">welcome</div>
+        </div>
+
+        <div class="main-content">
+            <div class="card-container">
+                <a href="/doc" class="card">
+                    <div class="card-title">documentation API</div>
+                    <div class="card-description">
+                        Swagger/OpenAPI documentation for all service endpoints
+                    </div>
+                </a>
+
+                <a href="/stat" class="card">
+                    <div class="card-title">statistics</div>
+                    <div class="card-description">
+                        Service statistics dashboard with loaded models and performance metrics
+                    </div>
+                </a>
+
+                <a href="/chat" class="card">
+                    <div class="card-title">chat</div>
+                    <div class="card-description">
+                        Interactive interface for sending prompts and receiving LLM responses
+                    </div>
+                </a>
+
+                <a href="/log/core" class="card">
+                    <div class="card-title">core logs</div>
+                    <div class="card-description">
+                        View service operation logs
+                    </div>
+                </a>
+
+                <a href="/log/chat" class="card">
+                    <div class="card-title">chat logs</div>
+                    <div class="card-description">
+                        View request and response logs
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/lib/vue.global.prod.js"></script>
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    version: '0.0.0'
+                }
+            },
+            mounted() {
+                fetch('/api/version')
+                    .then(res => res.json())
+                    .then(data => {
+                        this.version = data.version
+                    })
+                    .catch(err => {
+                        console.error('Failed to load version:', err)
+                    })
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
