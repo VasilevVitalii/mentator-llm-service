@@ -99,8 +99,8 @@
 
         <!-- Format Modal -->
         <div v-if="formatModalOpen" class="modal-backdrop" @click.self="onFormatCancel" @keydown.esc="onFormatCancel">
-            <div class="modal-window" role="dialog" aria-labelledby="modal-title" aria-modal="true">
-                <h2 id="modal-title" class="modal-title">Format Response</h2>
+            <div class="modal-window" role="dialog" aria-labelledby="format-modal-title" aria-modal="true">
+                <h2 id="format-modal-title" class="modal-title">Format Response</h2>
 
                 <div class="modal-form-group">
                     <textarea
@@ -138,6 +138,40 @@
                 </div>
             </div>
         </div>
+
+        <!-- Options Modal -->
+        <div v-if="optionsModalOpen" class="modal-backdrop" @click.self="onOptionsCancel" @keydown.esc="onOptionsCancel">
+            <div class="modal-window" role="dialog" aria-labelledby="options-modal-title" aria-modal="true">
+                <h2 id="options-modal-title" class="modal-title">LLM Options</h2>
+
+                <div class="modal-form-group">
+                    <textarea
+                        ref="optionsTextarea"
+                        v-model="optionsJson"
+                        class="modal-textarea"
+                        :class="optionsValidationClass"
+                        placeholder="Enter LLM options as JSON..."
+                        spellcheck="false"
+                        @input="onOptionsTextareaInput"
+                    ></textarea>
+                    <div v-if="optionsErrorMessage" class="modal-error">{{ optionsErrorMessage }}</div>
+                </div>
+
+                <div class="modal-controls">
+                    <div class="modal-left-controls">
+                        <button class="form-button width-120" @click="onOptionsCheck">check</button>
+                    </div>
+                    <div class="modal-right-controls">
+                        <button class="form-button width-120" @click="onOptionsOk">ok</button>
+                        <button class="form-button width-120 button-cancel" @click="onOptionsCancel">cancel</button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a href="https://github.com/withcatai/node-llama-cpp/blob/master/docs/guide/chat-session.md" target="_blank" class="modal-link">LLM Generation Parameters Documentation</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
@@ -167,13 +201,23 @@
                     formatSchema: '',
                     formatUseGrammar: true,
                     formatValidationState: null, // null, 'valid', or 'invalid'
-                    formatErrorMessage: ''
+                    formatErrorMessage: '',
+                    // Options modal state
+                    optionsModalOpen: false,
+                    optionsJson: '',
+                    optionsValidationState: null, // null, 'valid', or 'invalid'
+                    optionsErrorMessage: ''
                 }
             },
             computed: {
                 formatValidationClass() {
                     if (this.formatValidationState === 'valid') return 'valid'
                     if (this.formatValidationState === 'invalid') return 'invalid'
+                    return ''
+                },
+                optionsValidationClass() {
+                    if (this.optionsValidationState === 'valid') return 'valid'
+                    if (this.optionsValidationState === 'invalid') return 'invalid'
                     return ''
                 }
             },
@@ -383,8 +427,103 @@
                     this.formatValidationState = null
                     this.formatErrorMessage = ''
                 },
+                // Options modal - localStorage helpers
+                loadOptionsSettings() {
+                    try {
+                        const saved = localStorage.getItem('options')
+                        if (saved) {
+                            this.optionsJson = saved
+                        } else {
+                            this.optionsJson = this.getDefaultOptions()
+                        }
+                    } catch (err) {
+                        console.error('Failed to load options settings:', err)
+                        this.optionsJson = this.getDefaultOptions()
+                    }
+                },
+                saveOptionsSettings() {
+                    try {
+                        localStorage.setItem('options', this.optionsJson)
+                    } catch (err) {
+                        console.error('Failed to save options settings:', err)
+                        if (err.name === 'QuotaExceededError') {
+                            alert('Failed to save: localStorage quota exceeded. Please reduce the options size.')
+                        }
+                    }
+                },
+                getDefaultOptions() {
+                    return `{
+  "temperature": 0.0,
+  "topP": 0.1,
+  "topK": 10,
+  "minP": 0.0,
+  "maxTokens": 4096,
+  "repeatPenalty": 1.0,
+  "repeatPenaltyNum": 0,
+  "presencePenalty": 0.0,
+  "frequencyPenalty": 0.0,
+  "mirostat": 0,
+  "mirostatTau": 5.0,
+  "mirostatEta": 0.1,
+  "penalizeNewline": false,
+  "stopSequences": [],
+  "trimWhitespace": true
+}`
+                },
                 onOptionsClick() {
-                    console.log('Options button clicked')
+                    this.loadOptionsSettings()
+                    this.optionsValidationState = null
+                    this.optionsErrorMessage = ''
+                    this.optionsModalOpen = true
+
+                    this.$nextTick(() => {
+                        if (this.$refs.optionsTextarea) {
+                            this.$refs.optionsTextarea.focus()
+                        }
+                    })
+                },
+                async onOptionsCheck() {
+                    try {
+                        const options = JSON.parse(this.optionsJson)
+
+                        const response = await fetch('/api/checkoptions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ options }),
+                        })
+
+                        const result = await response.json()
+
+                        if (result.error) {
+                            this.optionsValidationState = 'invalid'
+                            this.optionsErrorMessage = result.error
+                            // Update textarea with completed options even if there's an error
+                            this.optionsJson = JSON.stringify(result.options, null, 2)
+                        } else {
+                            this.optionsValidationState = 'valid'
+                            this.optionsErrorMessage = ''
+                            // Update textarea with completed options
+                            this.optionsJson = JSON.stringify(result.options, null, 2)
+                        }
+                    } catch (err) {
+                        this.optionsValidationState = 'invalid'
+                        this.optionsErrorMessage = err.message || 'Failed to validate options'
+                    }
+                },
+                onOptionsTextareaInput() {
+                    this.optionsValidationState = null
+                    this.optionsErrorMessage = ''
+                },
+                onOptionsOk() {
+                    this.saveOptionsSettings()
+                    this.optionsModalOpen = false
+                },
+                onOptionsCancel() {
+                    this.optionsModalOpen = false
+                    this.optionsValidationState = null
+                    this.optionsErrorMessage = ''
                 },
                 onLoadClick() {
                     console.log('Load button clicked')
@@ -420,8 +559,12 @@
                     }
                 },
                 handleEscKey(e) {
-                    if (e.key === 'Escape' && this.formatModalOpen) {
-                        this.onFormatCancel()
+                    if (e.key === 'Escape') {
+                        if (this.formatModalOpen) {
+                            this.onFormatCancel()
+                        } else if (this.optionsModalOpen) {
+                            this.onOptionsCancel()
+                        }
                     }
                 }
             }
