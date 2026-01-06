@@ -189,6 +189,11 @@
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
+    <script type="module">
+        import { PromtLoad, PromtStore } from '/static/lib/vv-ai-promt-store.js'
+        window.PromtLoad = PromtLoad
+        window.PromtStore = PromtStore
+    </script>
     <script>
         const { createApp } = Vue
 
@@ -209,6 +214,8 @@
                     messageUser: '',
                     messageSystem: '',
                     responseValidationState: null, // null, 'valid', or 'invalid'
+                    loadedFileName: null, // Name of loaded file
+                    loadedFileHadSinglePromt: false, // Was there only one promt in loaded file
                     topHeight: 0,
                     bottomHeight: 0,
                     isDragging: false,
@@ -652,10 +659,129 @@
                     this.optionsErrorMessage = ''
                 },
                 onLoadClick() {
-                    console.log('Load button clicked')
+                    // Create file input element
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = '.txt,.promt'
+
+                    input.onchange = async (e) => {
+                        const file = e.target.files[0]
+                        if (!file) return
+
+                        try {
+                            // Read file content
+                            const content = await file.text()
+
+                            // Parse with PromtLoad
+                            const promts = window.PromtLoad(content)
+
+                            if (!promts || promts.length === 0) {
+                                alert('No prompts found in file')
+                                return
+                            }
+
+                            // Use first promt
+                            const promt = promts[0]
+
+                            // Load messages
+                            this.messageUser = promt.user || ''
+                            this.messageSystem = promt.system || ''
+
+                            // Save messages to localStorage
+                            localStorage.setItem('message.user', this.messageUser)
+                            localStorage.setItem('message.system', this.messageSystem)
+
+                            // Load format from segment.format
+                            if (promt.segment && promt.segment.format) {
+                                try {
+                                    localStorage.setItem('format', promt.segment.format)
+                                } catch (err) {
+                                    console.error('Failed to save format segment:', err)
+                                }
+                            }
+
+                            // Load options from segment.options
+                            if (promt.segment && promt.segment.options) {
+                                try {
+                                    localStorage.setItem('options', promt.segment.options)
+                                } catch (err) {
+                                    console.error('Failed to save options segment:', err)
+                                }
+                            }
+
+                            // Track loaded file
+                            this.loadedFileName = file.name
+                            this.loadedFileHadSinglePromt = promts.length === 1
+
+                            console.log('Promt loaded successfully from', file.name)
+                        } catch (err) {
+                            alert('Failed to load promt: ' + err.message)
+                            console.error('Load error:', err)
+                        }
+                    }
+
+                    input.click()
                 },
                 onSaveClick() {
-                    console.log('Save button clicked')
+                    try {
+                        // Create promt object
+                        const promt = {
+                            user: this.messageUser,
+                            system: this.messageSystem || undefined,
+                            segment: {},
+                            options: {}
+                        }
+
+                        // Add format segment if exists
+                        try {
+                            const savedFormat = localStorage.getItem('format')
+                            if (savedFormat) {
+                                promt.segment.format = savedFormat
+                            }
+                        } catch (err) {
+                            console.error('Failed to load format for saving:', err)
+                        }
+
+                        // Add options segment if exists
+                        try {
+                            const savedOptions = localStorage.getItem('options')
+                            if (savedOptions) {
+                                promt.segment.options = savedOptions
+                            }
+                        } catch (err) {
+                            console.error('Failed to load options for saving:', err)
+                        }
+
+                        // Serialize with PromtStore
+                        const content = window.PromtStore([promt])
+
+                        // Determine filename
+                        let filename
+                        if (this.loadedFileName && this.loadedFileHadSinglePromt) {
+                            // Reuse loaded filename
+                            filename = this.loadedFileName
+                        } else {
+                            // Generate new filename with timestamp
+                            const timestamp = this.formatTimestamp(new Date())
+                            filename = `promt-${timestamp}.txt`
+                        }
+
+                        // Download file
+                        const blob = new Blob([content], { type: 'text/plain' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = filename
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+
+                        console.log('Promt saved to', filename)
+                    } catch (err) {
+                        alert('Failed to save promt: ' + err.message)
+                        console.error('Save error:', err)
+                    }
                 },
                 async onSendClick() {
                     if (this.isSending) return
