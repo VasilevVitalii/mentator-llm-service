@@ -22,7 +22,7 @@
                     <!-- Row 1: Type, Model, Format, Options -->
                     <div class="form-row">
                         <div class="form-group fixed-width">
-                            <span class="form-label">type</span>
+                            <span class="form-label">message type</span>
                             <select v-model="messageType" class="form-select">
                                 <option value="system">system</option>
                                 <option value="user">user</option>
@@ -31,7 +31,7 @@
                         <div class="form-group flex-1">
                             <span class="form-label">model</span>
                             <select v-model="selectedModel" class="form-select">
-                                <option v-for="model in models" :key="model" :value="model">{{ model }}</option>
+                                <option v-for="model in models" :key="model.name" :value="model.name">{{ formatModelDisplay(model) }}</option>
                             </select>
                         </div>
                         <button class="form-button width-120" @click="onFormatClick">format</button>
@@ -43,11 +43,22 @@
                         <div class="form-group" style="flex: 1; display: flex;">
                             <span class="form-label" ref="requestLabel">request</span>
                             <textarea
-                                v-model="request"
+                                v-show="messageType === 'user'"
+                                v-model="messageUser"
                                 class="form-textarea"
-                                placeholder="Enter your request here..."
+                                placeholder="Enter your request (user message) here..."
                                 spellcheck="false"
                                 @scroll="onRequestScroll"
+                                @input="onMessageUserInput"
+                            ></textarea>
+                            <textarea
+                                v-show="messageType === 'system'"
+                                v-model="messageSystem"
+                                class="form-textarea"
+                                placeholder="Enter your request (system message) here..."
+                                spellcheck="false"
+                                @scroll="onRequestScroll"
+                                @input="onMessageSystemInput"
                             ></textarea>
                         </div>
                     </div>
@@ -78,6 +89,7 @@
                             <textarea
                                 v-model="response"
                                 class="form-textarea"
+                                :class="responseValidationClass"
                                 placeholder="Response will appear here..."
                                 spellcheck="false"
                                 readonly
@@ -168,7 +180,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <a href="https://github.com/withcatai/node-llama-cpp/blob/master/docs/guide/chat-session.md" target="_blank" class="modal-link">LLM Generation Parameters Documentation</a>
+                    <a href="https://docs.ollama.com/modelfile#parameter" target="_blank" class="modal-link">Ollama Model Parameters Documentation</a>
                 </div>
             </div>
         </div>
@@ -183,14 +195,12 @@
                 return {
                     version: '0.0.0',
                     messageType: 'user',
-                    selectedModel: 'model-1',
-                    models: [
-                        'model-1',
-                        'model-2',
-                        'model-3'
-                    ],
-                    request: '',
+                    selectedModel: '',
+                    models: [],
                     response: '',
+                    messageUser: '',
+                    messageSystem: '',
+                    responseValidationState: null, // null, 'valid', or 'invalid'
                     topHeight: 0,
                     bottomHeight: 0,
                     isDragging: false,
@@ -219,6 +229,18 @@
                     if (this.optionsValidationState === 'valid') return 'valid'
                     if (this.optionsValidationState === 'invalid') return 'invalid'
                     return ''
+                },
+                responseValidationClass() {
+                    if (this.responseValidationState === 'valid') return 'valid'
+                    if (this.responseValidationState === 'invalid') return 'invalid'
+                    return ''
+                }
+            },
+            watch: {
+                selectedModel(newModel) {
+                    if (newModel) {
+                        localStorage.setItem('chat.model', newModel)
+                    }
                 }
             },
             mounted() {
@@ -231,6 +253,9 @@
                     .catch(err => {
                         console.error('Failed to load version:', err)
                     })
+
+                // Load models
+                this.loadModels()
 
                 // Initialize heights
                 this.initializeHeights()
@@ -246,6 +271,9 @@
 
                 // Handle ESC key globally
                 document.addEventListener('keydown', this.handleEscKey)
+
+                // Load messages from localStorage
+                this.loadMessages()
             },
             beforeUnmount() {
                 document.removeEventListener('mousemove', this.onDrag)
@@ -256,6 +284,50 @@
                 document.removeEventListener('keydown', this.handleEscKey)
             },
             methods: {
+                // Models
+                async loadModels() {
+                    try {
+                        const response = await fetch('/api/models')
+                        const data = await response.json()
+                        this.models = data.models || []
+
+                        // Load saved model from localStorage
+                        const savedModel = localStorage.getItem('chat.model')
+
+                        // Check if saved model exists in the list
+                        if (savedModel && this.models.some(m => m.name === savedModel)) {
+                            this.selectedModel = savedModel
+                        } else if (this.models.length > 0) {
+                            // If no saved model or saved model not found, select first
+                            this.selectedModel = this.models[0].name
+                        }
+                    } catch (err) {
+                        console.error('Failed to load models:', err)
+                        this.models = []
+                    }
+                },
+                formatModelDisplay(model) {
+                    const sizeMb = Math.ceil(model.sizeKb / 1024)
+                    return `${model.name} (${sizeMb} MB)`
+                },
+                // Messages - localStorage helpers
+                loadMessages() {
+                    try {
+                        const savedUser = localStorage.getItem('message.user')
+                        const savedSystem = localStorage.getItem('message.system')
+
+                        this.messageUser = savedUser || ''
+                        this.messageSystem = savedSystem || ''
+                    } catch (err) {
+                        console.error('Failed to load messages:', err)
+                    }
+                },
+                onMessageUserInput() {
+                    localStorage.setItem('message.user', this.messageUser)
+                },
+                onMessageSystemInput() {
+                    localStorage.setItem('message.system', this.messageSystem)
+                },
                 // Format modal - localStorage helpers
                 loadFormatSettings() {
                     try {
@@ -402,12 +474,12 @@
 
                         const result = await response.json()
 
-                        if (result.valid) {
+                        if (result.error) {
+                            this.formatValidationState = 'invalid'
+                            this.formatErrorMessage = result.error
+                        } else {
                             this.formatValidationState = 'valid'
                             this.formatErrorMessage = ''
-                        } else {
-                            this.formatValidationState = 'invalid'
-                            this.formatErrorMessage = result.error || 'Invalid JSON Schema'
                         }
                     } catch (err) {
                         this.formatValidationState = 'invalid'
@@ -531,8 +603,80 @@
                 onSaveClick() {
                     console.log('Save button clicked')
                 },
-                onSendClick() {
-                    console.log('Send button clicked')
+                async onSendClick() {
+                    // Reset response state
+                    this.responseValidationState = null
+                    this.response = ''
+
+                    try {
+                        // Load format settings from localStorage
+                        let formatSettings = null
+                        try {
+                            const savedFormat = localStorage.getItem('format')
+                            if (savedFormat) {
+                                const parsed = JSON.parse(savedFormat)
+                                formatSettings = {
+                                    useGrammar: parsed.useGrammar,
+                                    jsonSchema: JSON.parse(parsed.schema)
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Failed to parse format settings:', err)
+                        }
+
+                        // Load options from localStorage
+                        let options = null
+                        try {
+                            const savedOptions = localStorage.getItem('options')
+                            if (savedOptions) {
+                                options = JSON.parse(savedOptions)
+                            }
+                        } catch (err) {
+                            console.error('Failed to parse options:', err)
+                        }
+
+                        // Prepare request body
+                        const requestBody = {
+                            model: this.selectedModel,
+                            message: {
+                                user: this.messageUser,
+                                system: this.messageSystem || undefined
+                            },
+                            durationMsec: 120000, // 2 minutes default
+                            options: options || undefined,
+                            format: formatSettings || undefined
+                        }
+
+                        // Send request to API
+                        const response = await fetch('/promt', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(requestBody),
+                        })
+
+                        const result = await response.json()
+
+                        // Handle response
+                        if (response.ok && result.result && result.result.data) {
+                            // Success
+                            this.response = JSON.stringify(result.result.data, null, 2)
+                            this.responseValidationState = 'valid'
+                        } else if (result.error) {
+                            // Error from API
+                            this.response = result.error
+                            this.responseValidationState = 'invalid'
+                        } else {
+                            // Unexpected response
+                            this.response = JSON.stringify(result, null, 2)
+                            this.responseValidationState = 'invalid'
+                        }
+                    } catch (err) {
+                        // Network or other error
+                        this.response = `Error: ${err.message}`
+                        this.responseValidationState = 'invalid'
+                    }
                 },
                 onCopyAllClick() {
                     console.log('Copy all to clipboard')

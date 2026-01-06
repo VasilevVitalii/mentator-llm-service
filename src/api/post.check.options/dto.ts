@@ -1,11 +1,11 @@
-import { Type, Static } from '@sinclair/typebox'
+import { Type, type Static } from '@sinclair/typebox'
 
 export const CheckOptionsRequestDto = Type.Object({
 	options: Type.Any(),
 })
 
 export const CheckOptionsResponseDto = Type.Object({
-	options: Type.Object({
+	options: Type.Optional(Type.Object({
 		temperature: Type.Number(),
 		topP: Type.Number(),
 		topK: Type.Integer(),
@@ -22,8 +22,8 @@ export const CheckOptionsResponseDto = Type.Object({
 		stopSequences: Type.Array(Type.String()),
 		trimWhitespace: Type.Boolean(),
 		seed: Type.Optional(Type.Integer()),
-	}),
-	error: Type.Optional(Type.String()),
+	})),
+	error: Type.String(),
 })
 
 export type TCheckOptionsRequest = Static<typeof CheckOptionsRequestDto>

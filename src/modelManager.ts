@@ -99,6 +99,10 @@ class ModelManagerClass extends ClassLogger {
 			  }
 			: undefined
 	}
+
+	getModelList(): TModelFile[] {
+		return this._modelFileList
+	}
 }
 
 export const ModelManager = singleton(ModelManagerClass)

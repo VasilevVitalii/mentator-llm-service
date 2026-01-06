@@ -123,7 +123,7 @@ export async function controller(fastify: FastifyInstance) {
 				}
 
 				// Success: valid and complete options
-				const response = { options: mergedOptions }
+				const response = { options: mergedOptions, error: '' }
 				res.send(response)
 				Log().trace(pipe, req.url)
 			} catch (err: any) {

@@ -169,6 +169,17 @@ body {
     overflow-x: auto;
     overflow-y: auto;
     white-space: pre;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.form-textarea.valid {
+    background-color: var(--b-main2);
+    border-color: var(--b-main1);
+}
+
+.form-textarea.invalid {
+    background-color: var(--b-warn2);
+    border-color: var(--b-warn1);
 }
 
 .form-button {

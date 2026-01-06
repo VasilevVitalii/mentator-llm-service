@@ -5,8 +5,7 @@ export const CheckFormatRequestDto = Type.Object({
 })
 
 export const CheckFormatResponseDto = Type.Object({
-	valid: Type.Boolean(),
-	error: Type.Optional(Type.String()),
+	error: Type.String(),
 })
 
 export type TCheckFormatRequest = Static<typeof CheckFormatRequestDto>

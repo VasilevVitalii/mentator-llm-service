@@ -30,15 +30,12 @@ export async function controller(fastify: FastifyInstance) {
 				// Try to compile the schema
 				ajv.compile(schema)
 
-				const response = { valid: true }
-				res.send(response)
+				res.send({ error: '' })
 				Log().trace(pipe, req.url)
 			} catch (err: any) {
-				const response = {
-					valid: false,
+				res.send({
 					error: err.message || 'Invalid JSON Schema',
-				}
-				res.send(response)
+				})
 				Log().trace(pipe, req.url)
 			}
 		},
