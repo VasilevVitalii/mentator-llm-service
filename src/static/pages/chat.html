@@ -23,19 +23,19 @@
                     <div class="form-row">
                         <div class="form-group fixed-width">
                             <span class="form-label">message type</span>
-                            <select v-model="messageType" class="form-select">
+                            <select v-model="messageType" class="form-select" :disabled="isSending">
                                 <option value="system">system</option>
                                 <option value="user">user</option>
                             </select>
                         </div>
                         <div class="form-group flex-1">
                             <span class="form-label">model</span>
-                            <select v-model="selectedModel" class="form-select">
+                            <select v-model="selectedModel" class="form-select" :disabled="isSending">
                                 <option v-for="model in models" :key="model.name" :value="model.name">{{ formatModelDisplay(model) }}</option>
                             </select>
                         </div>
-                        <button class="form-button width-120" @click="onFormatClick">format</button>
-                        <button class="form-button width-120" @click="onOptionsClick">options</button>
+                        <button class="form-button width-120" :disabled="isSending" @click="onFormatClick">format</button>
+                        <button class="form-button width-120" :disabled="isSending" @click="onOptionsClick">options</button>
                     </div>
 
                     <!-- Row 2: Request textarea -->
@@ -48,6 +48,7 @@
                                 class="form-textarea"
                                 placeholder="Enter your request (user message) here..."
                                 spellcheck="false"
+                                :disabled="isSending"
                                 @scroll="onRequestScroll"
                                 @input="onMessageUserInput"
                             ></textarea>
@@ -57,6 +58,7 @@
                                 class="form-textarea"
                                 placeholder="Enter your request (system message) here..."
                                 spellcheck="false"
+                                :disabled="isSending"
                                 @scroll="onRequestScroll"
                                 @input="onMessageSystemInput"
                             ></textarea>
@@ -66,10 +68,10 @@
                     <!-- Row 3: Load, Save and Send buttons -->
                     <div class="button-group button-group-space-between">
                         <div class="button-group">
-                            <button class="form-button width-120" @click="onLoadClick">load</button>
-                            <button class="form-button width-120" @click="onSaveClick">save</button>
+                            <button class="form-button width-120" :disabled="isSending" @click="onLoadClick">load</button>
+                            <button class="form-button width-120" :disabled="isSending" @click="onSaveClick">save</button>
                         </div>
-                        <button class="form-button width-120" @click="onSendClick">send</button>
+                        <button class="form-button width-120" @click="onSendClick">{{ sendButtonText }}</button>
                     </div>
                 </div>
 
@@ -100,10 +102,10 @@
 
                     <!-- Row 6: Export buttons -->
                     <div class="button-group">
-                        <button class="form-button width-220" @click="onCopyAllClick">to clipboard all</button>
-                        <button class="form-button width-220" @click="onCopyPayloadClick">to clipboard payload</button>
-                        <button class="form-button width-220" @click="onSaveAllClick">to file all</button>
-                        <button class="form-button width-220" @click="onSavePayloadClick">to file payload</button>
+                        <button class="form-button width-220" :disabled="!responseFullData" @click="onCopyAllClick">to clipboard all</button>
+                        <button class="form-button width-220" :disabled="!responseFullData" @click="onCopyPayloadClick">to clipboard payload</button>
+                        <button class="form-button width-220" :disabled="!responseFullData" @click="onSaveAllClick">to file all</button>
+                        <button class="form-button width-220" :disabled="!responseFullData" @click="onSavePayloadClick">to file payload</button>
                     </div>
                 </div>
             </div>
@@ -198,6 +200,12 @@
                     selectedModel: '',
                     models: [],
                     response: '',
+                    responseFullData: null, // Full response object from API
+                    responseTimestamp: null, // Timestamp when response was received
+                    isSending: false, // Is request being sent
+                    sendStartTime: null, // When request was started
+                    sendElapsedSeconds: 0, // Elapsed seconds since send started
+                    sendTimerInterval: null, // Interval for updating timer
                     messageUser: '',
                     messageSystem: '',
                     responseValidationState: null, // null, 'valid', or 'invalid'
@@ -234,6 +242,12 @@
                     if (this.responseValidationState === 'valid') return 'valid'
                     if (this.responseValidationState === 'invalid') return 'invalid'
                     return ''
+                },
+                sendButtonText() {
+                    if (this.isSending) {
+                        return `SEND (${this.formatDuration(this.sendElapsedSeconds)})`
+                    }
+                    return 'SEND'
                 }
             },
             watch: {
@@ -284,6 +298,46 @@
                 document.removeEventListener('keydown', this.handleEscKey)
             },
             methods: {
+                // Helper methods
+                formatTimestamp(date) {
+                    if (!date) return ''
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    const hours = String(date.getHours()).padStart(2, '0')
+                    const minutes = String(date.getMinutes()).padStart(2, '0')
+                    const seconds = String(date.getSeconds()).padStart(2, '0')
+                    return `${year}${month}${day}${hours}${minutes}${seconds}`
+                },
+                formatDuration(seconds) {
+                    const hours = Math.floor(seconds / 3600)
+                    const minutes = Math.floor((seconds % 3600) / 60)
+                    const secs = seconds % 60
+
+                    if (hours > 0) {
+                        return `${hours} h ${minutes} min ${secs} sec`
+                    } else if (minutes > 0) {
+                        return `${minutes} min ${secs} sec`
+                    } else {
+                        return `${secs} sec`
+                    }
+                },
+                startSendTimer() {
+                    this.isSending = true
+                    this.sendStartTime = Date.now()
+                    this.sendElapsedSeconds = 0
+
+                    this.sendTimerInterval = setInterval(() => {
+                        this.sendElapsedSeconds = Math.floor((Date.now() - this.sendStartTime) / 1000)
+                    }, 1000)
+                },
+                stopSendTimer() {
+                    this.isSending = false
+                    if (this.sendTimerInterval) {
+                        clearInterval(this.sendTimerInterval)
+                        this.sendTimerInterval = null
+                    }
+                },
                 // Models
                 async loadModels() {
                     try {
@@ -604,9 +658,16 @@
                     console.log('Save button clicked')
                 },
                 async onSendClick() {
+                    if (this.isSending) return
+
+                    // Start timer
+                    this.startSendTimer()
+
                     // Reset response state
                     this.responseValidationState = null
                     this.response = ''
+                    this.responseFullData = null
+                    this.responseTimestamp = null
 
                     try {
                         // Load format settings from localStorage
@@ -658,17 +719,17 @@
 
                         const result = await response.json()
 
-                        // Handle response
-                        if (response.ok && result.result && result.result.data) {
-                            // Success
-                            this.response = JSON.stringify(result.result.data, null, 2)
+                        // Store full response data and timestamp
+                        this.responseFullData = result
+                        this.responseTimestamp = new Date()
+
+                        // Handle response - show entire response object
+                        if (response.ok && result.result && result.result.data !== undefined) {
+                            // Success - show full PromtResponseDto
+                            this.response = JSON.stringify(result, null, 2)
                             this.responseValidationState = 'valid'
-                        } else if (result.error) {
-                            // Error from API
-                            this.response = result.error
-                            this.responseValidationState = 'invalid'
                         } else {
-                            // Unexpected response
+                            // Error - show full PromtResponseBadDto
                             this.response = JSON.stringify(result, null, 2)
                             this.responseValidationState = 'invalid'
                         }
@@ -676,19 +737,90 @@
                         // Network or other error
                         this.response = `Error: ${err.message}`
                         this.responseValidationState = 'invalid'
+                        this.responseFullData = null
+                        this.responseTimestamp = null
+                    } finally {
+                        // Stop timer
+                        this.stopSendTimer()
                     }
                 },
                 onCopyAllClick() {
-                    console.log('Copy all to clipboard')
+                    if (!this.responseFullData) return
+
+                    const text = JSON.stringify(this.responseFullData, null, 2)
+                    navigator.clipboard.writeText(text).then(() => {
+                        console.log('Copied all to clipboard')
+                    }).catch(err => {
+                        console.error('Failed to copy to clipboard:', err)
+                    })
                 },
                 onCopyPayloadClick() {
-                    console.log('Copy payload to clipboard')
+                    if (!this.responseFullData) return
+
+                    let payload
+                    if (this.responseValidationState === 'valid' && this.responseFullData.result && this.responseFullData.result.data !== undefined) {
+                        // Success case: copy result.data
+                        payload = this.responseFullData.result.data
+                    } else if (this.responseFullData.error) {
+                        // Error case: copy error
+                        payload = this.responseFullData.error
+                    } else {
+                        // Fallback: copy everything
+                        payload = this.responseFullData
+                    }
+
+                    const text = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)
+                    navigator.clipboard.writeText(text).then(() => {
+                        console.log('Copied payload to clipboard')
+                    }).catch(err => {
+                        console.error('Failed to copy to clipboard:', err)
+                    })
                 },
                 onSaveAllClick() {
-                    console.log('Save all to file')
+                    if (!this.responseFullData) return
+
+                    const timestamp = this.formatTimestamp(this.responseTimestamp)
+                    const text = JSON.stringify(this.responseFullData, null, 2)
+                    const blob = new Blob([text], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `response-all-${timestamp}.json`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
                 },
                 onSavePayloadClick() {
-                    console.log('Save payload to file')
+                    if (!this.responseFullData) return
+
+                    const timestamp = this.formatTimestamp(this.responseTimestamp)
+                    let payload
+                    let filename
+                    if (this.responseValidationState === 'valid' && this.responseFullData.result && this.responseFullData.result.data !== undefined) {
+                        // Success case: save result.data
+                        payload = this.responseFullData.result.data
+                        filename = `response-data-${timestamp}.json`
+                    } else if (this.responseFullData.error) {
+                        // Error case: save error
+                        payload = this.responseFullData.error
+                        filename = `response-error-${timestamp}.txt`
+                    } else {
+                        // Fallback: save everything
+                        payload = this.responseFullData
+                        filename = `response-${timestamp}.json`
+                    }
+
+                    const text = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)
+                    const blob = new Blob([text], { type: typeof payload === 'string' ? 'text/plain' : 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = filename
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
                 },
                 onRequestScroll(e) {
                     const scrollTop = e.target.scrollTop
