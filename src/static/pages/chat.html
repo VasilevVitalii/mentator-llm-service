@@ -65,13 +65,14 @@
                         </div>
                     </div>
 
-                    <!-- Row 3: Load, Save and Send buttons -->
+                    <!-- Row 3: Load, Save, Clear and Send buttons -->
                     <div class="button-group button-group-space-between">
                         <div class="button-group">
                             <button class="form-button width-120" :disabled="isSending" @click="onLoadClick">load</button>
                             <button class="form-button width-120" :disabled="isSending" @click="onSaveClick">save</button>
+                            <button class="form-button button-clear width-120" :disabled="isSending" @click="onClearClick">clear</button>
                         </div>
-                        <button class="form-button width-120" @click="onSendClick">{{ sendButtonText }}</button>
+                        <button class="form-button width-120" :disabled="isSending" @click="onSendClick">{{ sendButtonText }}</button>
                     </div>
                 </div>
 
@@ -186,6 +187,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Confirm Modal -->
+        <div v-if="confirmModalOpen" class="modal-backdrop" @click.self="onConfirmCancel" @keydown.esc="onConfirmCancel">
+            <div class="modal-window modal-confirm" role="dialog" aria-labelledby="confirm-modal-title" aria-modal="true">
+                <h2 id="confirm-modal-title" class="modal-title modal-title-warn">Confirm Action</h2>
+
+                <div class="modal-confirm-message">
+                    {{ confirmMessage }}
+                </div>
+
+                <div class="modal-controls">
+                    <div class="modal-left-controls"></div>
+                    <div class="modal-right-controls">
+                        <button class="form-button width-120" @click="onConfirmOk">ok</button>
+                        <button class="form-button width-120 button-cancel" @click="onConfirmCancel">cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
@@ -231,7 +251,11 @@
                     optionsModalOpen: false,
                     optionsJson: '',
                     optionsValidationState: null, // null, 'valid', or 'invalid'
-                    optionsErrorMessage: ''
+                    optionsErrorMessage: '',
+                    // Confirm modal state
+                    confirmModalOpen: false,
+                    confirmMessage: '',
+                    confirmCallback: null
                 }
             },
             computed: {
@@ -252,7 +276,7 @@
                 },
                 sendButtonText() {
                     if (this.isSending) {
-                        return `SEND (${this.formatDuration(this.sendElapsedSeconds)})`
+                        return this.formatDuration(this.sendElapsedSeconds)
                     }
                     return 'SEND'
                 }
@@ -709,6 +733,16 @@
                                 }
                             }
 
+                            // Load model from segment.model (if found in models list)
+                            if (promt.segment && promt.segment.model) {
+                                const modelName = promt.segment.model.trim()
+                                if (this.models.some(m => m.name === modelName)) {
+                                    this.selectedModel = modelName
+                                } else {
+                                    console.warn(`Model "${modelName}" not found, keeping current selection`)
+                                }
+                            }
+
                             // Track loaded file
                             this.loadedFileName = file.name
                             this.loadedFileHadSinglePromt = promts.length === 1
@@ -752,6 +786,11 @@
                             console.error('Failed to load options for saving:', err)
                         }
 
+                        // Add model segment if exists
+                        if (this.selectedModel) {
+                            promt.segment.model = this.selectedModel
+                        }
+
                         // Serialize with PromtStore
                         const content = window.PromtStore([promt])
 
@@ -782,6 +821,60 @@
                         alert('Failed to save promt: ' + err.message)
                         console.error('Save error:', err)
                     }
+                },
+                onClearClick() {
+                    this.showConfirm('Are you sure you want to clear all data?', () => {
+                        // Clear messages
+                        this.messageUser = ''
+                        this.messageSystem = ''
+                        localStorage.setItem('message.user', '')
+                        localStorage.setItem('message.system', '')
+
+                        // Reset to first model
+                        if (this.models.length > 0) {
+                            this.selectedModel = this.models[0].name
+                        }
+
+                        // Reset format to defaults
+                        const defaultFormat = {
+                            schema: this.getDefaultSchema(),
+                            useGrammar: true
+                        }
+                        localStorage.setItem('format', JSON.stringify(defaultFormat))
+
+                        // Reset options to defaults
+                        localStorage.setItem('options', this.getDefaultOptions())
+
+                        // Clear response
+                        this.response = ''
+                        this.responseFullData = null
+                        this.responseTimestamp = null
+                        this.responseValidationState = null
+
+                        // Clear loaded file tracking
+                        this.loadedFileName = null
+                        this.loadedFileHadSinglePromt = false
+
+                        console.log('All data cleared')
+                    })
+                },
+                showConfirm(message, callback) {
+                    this.confirmMessage = message
+                    this.confirmCallback = callback
+                    this.confirmModalOpen = true
+                },
+                onConfirmOk() {
+                    this.confirmModalOpen = false
+                    if (this.confirmCallback) {
+                        this.confirmCallback()
+                        this.confirmCallback = null
+                    }
+                    this.confirmMessage = ''
+                },
+                onConfirmCancel() {
+                    this.confirmModalOpen = false
+                    this.confirmCallback = null
+                    this.confirmMessage = ''
                 },
                 async onSendClick() {
                     if (this.isSending) return
@@ -829,7 +922,7 @@
                                 user: this.messageUser,
                                 system: this.messageSystem || undefined
                             },
-                            durationMsec: 120000, // 2 minutes default
+                            durationMsec: 3600000, // 1 hour
                             options: options || undefined,
                             format: formatSettings || undefined
                         }
@@ -962,7 +1055,9 @@
                 },
                 handleEscKey(e) {
                     if (e.key === 'Escape') {
-                        if (this.formatModalOpen) {
+                        if (this.confirmModalOpen) {
+                            this.onConfirmCancel()
+                        } else if (this.formatModalOpen) {
                             this.onFormatCancel()
                         } else if (this.optionsModalOpen) {
                             this.onOptionsCancel()

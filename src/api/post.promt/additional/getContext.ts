@@ -31,7 +31,7 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 		}
 		const context = await data.model.createContext()
 		if (loadModelStatus === 'load') {
-			Log().debug('POST.PROMT', `in memory load model "${data.modelInfo.name}" (${Math.floor(data.modelInfo.sizeKb / 1024)} mb)`)
+			Log().debug('POST.PROMT', `in memory load model "${data.modelInfo.name}" (${Math.ceil(data.modelInfo.sizeKb / 1024)} mb)`)
 		}
 
 		return { ok: true, result: { context, loadModelStatus } }

@@ -420,6 +420,30 @@ body {
     color: var(--f-main1);
 }
 
+.button-clear {
+    background-color: var(--b-warn2);
+    border-color: var(--b-warn1);
+    color: var(--b-warn1);
+}
+
+.button-clear:hover {
+    background-color: var(--b-warn1);
+    color: var(--f-main1);
+}
+
+.button-clear:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: var(--b-warn2);
+    color: var(--b-warn1);
+}
+
+.button-clear:disabled:hover {
+    background-color: var(--b-warn2);
+    color: var(--b-warn1);
+    transform: none;
+}
+
 .modal-footer {
     margin-top: 12px;
     padding-top: 12px;
@@ -435,4 +459,22 @@ body {
 
 .modal-link:hover {
     text-decoration: underline;
+}
+
+/* Confirm modal specific styles */
+.modal-confirm {
+    height: auto;
+    max-width: 400px;
+}
+
+.modal-title-warn {
+    background-color: var(--b-warn1);
+}
+
+.modal-confirm-message {
+    padding: 24px;
+    font-size: 16px;
+    text-align: center;
+    color: var(--f-main2);
+    line-height: 1.5;
 }
