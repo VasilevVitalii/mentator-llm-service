@@ -20,12 +20,13 @@
     "dependencies": {
         "@fastify/static": "^9.0.0",
         "@fastify/swagger": "^9.6.1",
-        "@fastify/swagger-ui": "^5.2.3",
-        "@sinclair/typebox": "^0.34.41",
+        "@fastify/swagger-ui": "^5.2.4",
+        "@sinclair/typebox": "^0.34.47",
         "ajv": "^8.17.1",
         "fastify": "^5.6.2",
         "minimist": "^1.2.8",
         "node-llama-cpp": "^3.14.5",
+        "vv-ai-promt-store": "^1.0.2",
         "vv-config-jsonc": "^1.0.6"
     }
 }
