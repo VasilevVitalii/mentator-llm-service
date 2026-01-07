@@ -5,6 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistics - Mentator LLM Service</title>
     <link rel="stylesheet" href="/static/css/common.css">
+    <style>
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+        .stat-widget {
+            flex: 1 1 300px;
+            min-width: 300px;
+            max-width: 400px;
+            height: 150px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-widget h3 {
+            margin: 0 0 6px 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--b-main1);
+            text-transform: lowercase;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            font-size: 13px;
+        }
+        .stat-row-label {
+            color: #666;
+            text-transform: lowercase;
+        }
+        .stat-row-value {
+            font-weight: bold;
+            color: var(--b-main1);
+            text-align: right;
+        }
+        .stat-widget-warning {
+            background-color: var(--b-warn2);
+            border-color: var(--b-warn1);
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -16,21 +67,168 @@
         </div>
 
         <div class="main-content">
-            <p>Эта страница пока не реализована.</p>
+            <div class="stats-container">
+                <!-- Server Info -->
+                <div class="stat-widget">
+                    <h3>server info</h3>
+                    <div class="stat-row">
+                        <span class="stat-row-label">start time</span>
+                        <span class="stat-row-value">{{ serverStartTime }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">uptime</span>
+                        <span class="stat-row-value">{{ serverUptime }}</span>
+                    </div>
+                </div>
+
+                <!-- Current Model -->
+                <div class="stat-widget">
+                    <h3>current model</h3>
+                    <div v-if="currentModel">
+                        <div class="stat-row">
+                            <span class="stat-row-label">name</span>
+                            <span class="stat-row-value">{{ currentModel.name }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">size</span>
+                            <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">loaded at</span>
+                            <span class="stat-row-value">{{ currentModel.loadTime }}</span>
+                        </div>
+                    </div>
+                    <div v-else class="stat-label">no model loaded</div>
+                </div>
+
+                <!-- System Resources -->
+                <div class="stat-widget">
+                    <h3>system resources</h3>
+                    <div class="stat-row">
+                        <span class="stat-row-label">memory usage</span>
+                        <span class="stat-row-value">{{ memoryUsageMb }} mb</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">queue size</span>
+                        <span class="stat-row-value">{{ queueSize }}</span>
+                    </div>
+                </div>
+
+                <!-- Request Statistics - Last 1 hour -->
+                <div class="stat-widget" :class="{ 'stat-widget-warning': stats1h.failed > 0 }">
+                    <h3>requests (last 1 hour)</h3>
+                    <div class="stat-row">
+                        <span class="stat-row-label">successful requests</span>
+                        <span class="stat-row-value">{{ stats1h.success }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">failed requests</span>
+                        <span class="stat-row-value">{{ stats1h.failed }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 execution time</span>
+                        <span class="stat-row-value">{{ stats1h.p95PromtDuration }} ms</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 queue wait</span>
+                        <span class="stat-row-value">{{ stats1h.p95QueueDuration }} ms</span>
+                    </div>
+                </div>
+
+                <!-- Request Statistics - Last 3 hours -->
+                <div class="stat-widget" :class="{ 'stat-widget-warning': stats3h.failed > 0 }">
+                    <h3>requests (last 3 hours)</h3>
+                    <div class="stat-row">
+                        <span class="stat-row-label">successful requests</span>
+                        <span class="stat-row-value">{{ stats3h.success }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">failed requests</span>
+                        <span class="stat-row-value">{{ stats3h.failed }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 execution time</span>
+                        <span class="stat-row-value">{{ stats3h.p95PromtDuration }} ms</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 queue wait</span>
+                        <span class="stat-row-value">{{ stats3h.p95QueueDuration }} ms</span>
+                    </div>
+                </div>
+
+                <!-- Request Statistics - Last 24 hours -->
+                <div class="stat-widget" :class="{ 'stat-widget-warning': stats24h.failed > 0 }">
+                    <h3>requests (last 24 hours)</h3>
+                    <div class="stat-row">
+                        <span class="stat-row-label">successful requests</span>
+                        <span class="stat-row-value">{{ stats24h.success }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">failed requests</span>
+                        <span class="stat-row-value">{{ stats24h.failed }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 execution time</span>
+                        <span class="stat-row-value">{{ stats24h.p95PromtDuration }} ms</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">p95 queue wait</span>
+                        <span class="stat-row-value">{{ stats24h.p95QueueDuration }} ms</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
-    <script>
+    <script type="module">
+        import { formatDateTime, formatDuration } from '/static/lib/time-utils.js'
+
         const { createApp } = Vue
 
         createApp({
             data() {
                 return {
-                    version: '0.0.0'
+                    version: '0.0.0',
+                    serverStartTime: '',
+                    serverStartTimestamp: 0,
+                    serverUptime: '',
+                    currentModel: null,
+                    memoryUsageMb: 0,
+                    queueSize: 0,
+                    stats1h: {
+                        total: 0,
+                        success: 0,
+                        failed: 0,
+                        avgPromtDuration: 0,
+                        avgQueueDuration: 0,
+                        p95PromtDuration: 0,
+                        p95QueueDuration: 0,
+                    },
+                    stats3h: {
+                        total: 0,
+                        success: 0,
+                        failed: 0,
+                        avgPromtDuration: 0,
+                        avgQueueDuration: 0,
+                        p95PromtDuration: 0,
+                        p95QueueDuration: 0,
+                    },
+                    stats24h: {
+                        total: 0,
+                        success: 0,
+                        failed: 0,
+                        avgPromtDuration: 0,
+                        avgQueueDuration: 0,
+                        p95PromtDuration: 0,
+                        p95QueueDuration: 0,
+                    },
+                    pollInterval: null,
+                    uptimeInterval: null,
                 }
             },
             mounted() {
+                // Load version
                 fetch('/api/version')
                     .then(res => res.json())
                     .then(data => {
@@ -39,7 +237,74 @@
                     .catch(err => {
                         console.error('Failed to load version:', err)
                     })
-            }
+
+                // Load initial statistics
+                this.loadStatistics()
+
+                // Poll statistics every 10 seconds
+                this.pollInterval = setInterval(() => {
+                    this.loadStatistics()
+                }, 10000)
+
+                // Update uptime every second
+                this.uptimeInterval = setInterval(() => {
+                    this.updateUptime()
+                }, 1000)
+            },
+            beforeUnmount() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval)
+                }
+                if (this.uptimeInterval) {
+                    clearInterval(this.uptimeInterval)
+                }
+            },
+            methods: {
+                loadStatistics() {
+                    fetch('/api/statdata')
+                        .then(res => {
+                            if (!res.ok) {
+                                throw new Error(`HTTP error! status: ${res.status}`)
+                            }
+                            return res.json()
+                        })
+                        .then(data => {
+                            // Server info
+                            this.serverStartTimestamp = data.serverStartTimestamp
+                            this.serverStartTime = formatDateTime(new Date(data.serverStartTimestamp))
+                            this.serverUptime = formatDuration(data.serverUptimeSeconds)
+
+                            // Current model
+                            if (data.currentModel) {
+                                this.currentModel = {
+                                    name: data.currentModel.name,
+                                    sizeMb: data.currentModel.sizeMb,
+                                    loadTime: formatDateTime(new Date(data.currentModel.loadTimestamp)),
+                                }
+                            } else {
+                                this.currentModel = null
+                            }
+
+                            // System resources
+                            this.memoryUsageMb = data.memoryUsageMb
+                            this.queueSize = data.queueSize
+
+                            // Statistics
+                            if (data.stats1h) this.stats1h = data.stats1h
+                            if (data.stats3h) this.stats3h = data.stats3h
+                            if (data.stats24h) this.stats24h = data.stats24h
+                        })
+                        .catch(err => {
+                            console.error('Failed to load statistics:', err)
+                        })
+                },
+                updateUptime() {
+                    if (this.serverStartTimestamp > 0) {
+                        const uptimeSeconds = Math.floor((Date.now() - this.serverStartTimestamp) / 1000)
+                        this.serverUptime = formatDuration(uptimeSeconds)
+                    }
+                },
+            },
         }).mount('#app')
     </script>
 </body>

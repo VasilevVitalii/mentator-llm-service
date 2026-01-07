@@ -10,6 +10,7 @@ import { GetResponse } from './additional/getResponse'
 import { GetResponseValidation } from './additional/getResponseValidation'
 import { QueuePromt } from '../../queue'
 import { saveHist } from './additional/saveHist'
+import { PromtOptionsParse } from 'vv-ai-promt-store'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -52,12 +53,19 @@ export async function controller(fastify: FastifyInstance) {
 				}
 				const llama = llamaRes.result
 
-				const generationParamsRes = await getGenerationParams(
-					llama,
+				// Merge default options with request options and validate
+				const mergedOptions = PromtOptionsParse(
+					'json',
 					{
 						...fastify.appConfig.defaultOptions,
 						...body.options,
 					},
+					true
+				)
+
+				const generationParamsRes = await getGenerationParams(
+					llama,
+					mergedOptions,
 					body.format,
 				)
 				if (!generationParamsRes.ok) {

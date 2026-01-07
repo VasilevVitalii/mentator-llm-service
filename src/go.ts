@@ -8,6 +8,7 @@ import { ModelManager } from './modelManager'
 import { QueuePromt } from './queue'
 import { Db } from './db'
 import { Log } from './log'
+import { ServerStats } from './serverStats'
 import { join } from 'path'
 
 export async function Go(config: TConfig): Promise<void> {
@@ -17,6 +18,7 @@ export async function Go(config: TConfig): Promise<void> {
 		Db.init(config.dbFile)
 		QueuePromt.init()
 		Log.init(config.log)
+		ServerStats.init()
 		if (Db().error) {
 			Log().error('DB', Db().error || '')
 		} else {

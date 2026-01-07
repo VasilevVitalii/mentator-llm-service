@@ -147,6 +147,100 @@ class DbClass {
 		})
 	}
 
+	async getStatistics(intervalMsec: number): Promise<{
+		total: number
+		success: number
+		failed: number
+		avgPromtDuration: number
+		avgQueueDuration: number
+		p95PromtDuration: number
+		p95QueueDuration: number
+	}> {
+		const cutoffTimestamp = Date.now() - intervalMsec
+
+		if (this.error) {
+			return {
+				total: 0,
+				success: 0,
+				failed: 0,
+				avgPromtDuration: 0,
+				avgQueueDuration: 0,
+				p95PromtDuration: 0,
+				p95QueueDuration: 0,
+			}
+		}
+
+		return await this._queue.add(async () => {
+			try {
+				// Get counts and averages
+				const statsQuery = this._db!.prepare(`
+					SELECT
+						COUNT(*) as total,
+						COUNT(CASE WHEN code = 200 THEN 1 END) as success,
+						COUNT(CASE WHEN code != 200 THEN 1 END) as failed,
+						AVG(CASE WHEN code = 200 THEN durationPromtMsec END) as avgPromtDuration,
+						AVG(durationQueueMsec) as avgQueueDuration
+					FROM promt
+					WHERE ts >= ?
+				`)
+				const stats = statsQuery.get(cutoffTimestamp) as any
+
+				// Get all durations for percentile calculation
+				const durationsQuery = this._db!.prepare(`
+					SELECT
+						durationPromtMsec,
+						durationQueueMsec,
+						code
+					FROM promt
+					WHERE ts >= ?
+					ORDER BY durationPromtMsec
+				`)
+				const allDurations = durationsQuery.all(cutoffTimestamp) as Array<{
+					durationPromtMsec: number
+					durationQueueMsec: number
+					code: number
+				}>
+
+				// Calculate 95th percentile for successful requests
+				const successDurations = allDurations.filter(d => d.code === 200).map(d => d.durationPromtMsec)
+				const queueDurations = allDurations.map(d => d.durationQueueMsec).sort((a, b) => a - b)
+
+				const p95PromtDuration = this._calculatePercentile(successDurations, 0.95)
+				const p95QueueDuration = this._calculatePercentile(queueDurations, 0.95)
+
+				return {
+					total: stats.total || 0,
+					success: stats.success || 0,
+					failed: stats.failed || 0,
+					avgPromtDuration: stats.avgPromtDuration ? Math.round(stats.avgPromtDuration) : 0,
+					avgQueueDuration: stats.avgQueueDuration ? Math.round(stats.avgQueueDuration) : 0,
+					p95PromtDuration,
+					p95QueueDuration,
+				}
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on get statistics: ${err}`)
+				return {
+					total: 0,
+					success: 0,
+					failed: 0,
+					avgPromtDuration: 0,
+					avgQueueDuration: 0,
+					p95PromtDuration: 0,
+					p95QueueDuration: 0,
+				}
+			}
+		})
+	}
+
+	private _calculatePercentile(values: number[], percentile: number): number {
+		if (values.length === 0) return 0
+
+		const sorted = [...values].sort((a, b) => a - b)
+		const index = Math.ceil(sorted.length * percentile) - 1
+		return sorted[Math.max(0, index)] || 0
+	}
+
 	close(): void {
 		if (this._db) {
 			this._db.close()

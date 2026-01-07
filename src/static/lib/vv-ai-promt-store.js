@@ -1,10 +1,128 @@
-export function PromtLoad(raw) {
-    return parse(raw);
+import { SPromtOptions, SPromtOptionsJson, defVal, defValJson } from './promtOptions/index.js';
+import { Value } from '@sinclair/typebox/value';
+export { SPromtOptions, SPromtOptionsJson } from './promtOptions/index.js';
+/**
+ * Parses and validates prompt options from a raw object.
+ *
+ * @param use - Schema type to use: 'core' for standard AI models, 'json' for structured JSON output
+ * @param raw - Raw object containing option values to parse
+ * @param useAllOptions - If true, returns all options with defaults; if false, returns only specified options (default: true)
+ * @returns Validated TPromtOptions object. Invalid values are replaced with defaults. Never throws errors.
+ *
+ * @example
+ * ```typescript
+ * // Get all options with defaults
+ * const options = PromtOptionsParse('core', { temperature: 0.7 })
+ * // Returns: { temperature: 0.7, topP: 0.9, topK: 40, ... all other defaults }
+ *
+ * // Get only specified options
+ * const options = PromtOptionsParse('core', { temperature: 0.7 }, false)
+ * // Returns: { temperature: 0.7 }
+ * ```
+ */
+export function PromtOptionsParse(use, raw, useAllOptions = true) {
+    const schema = use === 'core' ? SPromtOptions : SPromtOptionsJson;
+    const defaults = use === 'core' ? defVal : defValJson;
+    const input = raw && typeof raw === 'object' ? raw : {};
+    const result = {};
+    for (const key of Object.keys(defaults)) {
+        const inputValue = input[key];
+        const defaultValue = defaults[key];
+        if (inputValue === undefined) {
+            if (useAllOptions) {
+                result[key] = defaultValue;
+            }
+            continue;
+        }
+        const propertySchema = schema.properties[key];
+        if (propertySchema && Value.Check(propertySchema, inputValue)) {
+            result[key] = inputValue;
+        }
+        else {
+            if (useAllOptions) {
+                result[key] = defaultValue;
+            }
+        }
+    }
+    if (input.seed !== undefined) {
+        const seedSchema = schema.properties.seed;
+        if (seedSchema && Value.Check(seedSchema, input.seed)) {
+            result.seed = input.seed;
+        }
+    }
+    return result;
 }
+/**
+ * Loads and parses prompts from a text string with structured sections.
+ *
+ * @param raw - Raw text string containing prompts in the format with $$begin/$$end markers
+ * @param use - Schema type for options validation: 'core' for standard AI models, 'json' for structured JSON output (default: 'core')
+ * @returns Array of parsed TPromt objects
+ *
+ * @remarks
+ * Text format supports the following sections:
+ * - `$$begin` / `$$end` - Marks prompt boundaries
+ * - `$$system` - System message (optional)
+ * - `$$user` - User message (required)
+ * - `$$options` - Model parameters in key=value format (optional)
+ * - `$$segment=name` - Named content segments (optional)
+ *
+ * @example
+ * ```typescript
+ * const text = `$$begin
+ * $$options
+ * temperature=0.7
+ * maxTokens=2048
+ * $$system
+ * You are a helpful assistant
+ * $$user
+ * Hello, world!
+ * $$end`
+ *
+ * const prompts = PromtLoad(text)
+ * // Returns: [{ system: '...', user: '...', options: { temperature: 0.7, maxTokens: 2048 } }]
+ * ```
+ */
+export function PromtLoad(raw, use = 'core') {
+    return parse(raw, use);
+}
+/**
+ * Serializes prompt objects into a text string with structured sections.
+ *
+ * @param promt - Array of TPromt objects to serialize
+ * @returns Formatted text string with $$begin/$$end markers and sections
+ *
+ * @remarks
+ * Output format structure:
+ * - Each prompt is wrapped in `$$begin` / `$$end`
+ * - Sections are ordered: $$options, $$system, $$user, $$segment=*
+ * - Options are serialized in key=value format
+ * - Arrays are serialized as JSON
+ *
+ * @example
+ * ```typescript
+ * const prompts: TPromt[] = [{
+ *   system: 'You are helpful',
+ *   user: 'Hello!',
+ *   options: { temperature: 0.7 }
+ * }]
+ *
+ * const text = PromtStore(prompts)
+ * // Returns:
+ * // $$begin
+ * // $$options
+ * // temperature=0.7
+ * // $$system
+ * // You are helpful
+ * // $$user
+ * // Hello!
+ * // $$end
+ * ```
+ */
 export function PromtStore(promt) {
     return serialize(promt);
 }
-function parse(content) {
+function parse(content, use) {
     const lines = content.split('\n');
     const promts = [];
     let inBlock = false;
@@ -18,7 +136,7 @@ function parse(content) {
         if (trimmed === '$$begin') {
             if (inBlock && currentPromt) {
                 if (currentSection && sectionContent.length > 0) {
-                    finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                    finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
                 }
                 if (currentPromt.user) {
                     promts.push(currentPromt);
@@ -34,7 +152,7 @@ function parse(content) {
         if (trimmed === '$$end') {
             if (inBlock && currentPromt) {
                 if (currentSection && sectionContent.length > 0) {
-                    finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                    finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
                 }
                 if (currentPromt.user) {
                     promts.push(currentPromt);
@@ -52,7 +170,7 @@ function parse(content) {
         }
         if (trimmed === '$$system') {
             if (currentSection && sectionContent.length > 0) {
-                finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
             }
             currentSection = 'system';
             currentSegmentName = null;
@@ -61,7 +179,7 @@ function parse(content) {
         }
         if (trimmed === '$$user') {
             if (currentSection && sectionContent.length > 0) {
-                finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
             }
             currentSection = 'user';
             currentSegmentName = null;
@@ -70,7 +188,7 @@ function parse(content) {
         }
         if (trimmed === '$$options') {
             if (currentSection && sectionContent.length > 0) {
-                finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
             }
             currentSection = 'options';
             currentSegmentName = null;
@@ -79,7 +197,7 @@ function parse(content) {
         }
         if (trimmed.startsWith('$$segment=')) {
             if (currentSection && sectionContent.length > 0) {
-                finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+                finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
             }
             currentSection = 'segment';
             currentSegmentName = trimmed.substring('$$segment='.length).trim();
@@ -92,7 +210,7 @@ function parse(content) {
     }
     if (inBlock && currentPromt) {
         if (currentSection && sectionContent.length > 0) {
-            finishSection(currentPromt, currentSection, sectionContent, currentSegmentName);
+            finishSection(currentPromt, currentSection, sectionContent, use, currentSegmentName);
         }
         if (currentPromt.user) {
             promts.push(currentPromt);
@@ -100,7 +218,7 @@ function parse(content) {
     }
     return promts;
 }
-function finishSection(promt, section, lines, segmentName) {
+function finishSection(promt, section, lines, use, segmentName) {
     const content = lines.join('\n').trim();
     if (section === 'system') {
         promt.system = content;
@@ -115,10 +233,11 @@ function finishSection(promt, section, lines, segmentName) {
         promt.segment[segmentName] = content;
     }
     else if (section === 'options') {
-        promt.options = parseOptions(content);
+        const rawOptions = parseOptionsToObject(content);
+        promt.options = PromtOptionsParse(use, rawOptions, false);
     }
 }
-function parseOptions(content) {
+function parseOptionsToObject(content) {
     const options = {};
     const lines = content.split('\n');
     for (const line of lines) {
@@ -130,38 +249,25 @@ function parseOptions(content) {
             continue;
         const key = trimmed.substring(0, eqIndex).trim();
         const valueStr = trimmed.substring(eqIndex + 1).trim();
-        // Пропускаем неизвестные ключи
-        if (!isValidOptionKey(key))
-            continue;
-        const value = parseOptionValue(key, valueStr);
+        const value = parseOptionValue(valueStr);
         if (value !== undefined) {
             options[key] = value;
         }
     }
     return options;
 }
-function isValidOptionKey(key) {
-    const validKeys = [
-        'temperature', 'topP', 'topK', 'minP', 'maxTokens',
-        'repeatPenalty', 'repeatPenaltyNum', 'presencePenalty',
-        'frequencyPenalty', 'mirostat', 'mirostatTau', 'mirostatEta',
-        'penalizeNewline', 'stopSequences', 'trimWhitespace'
-    ];
-    return validKeys.includes(key);
-}
-function parseOptionValue(key, valueStr) {
+function parseOptionValue(valueStr) {
     // Пустое значение = undefined
     if (valueStr === '') {
         return undefined;
     }
     // Убираем кавычки если есть
     let cleanValue = valueStr;
-    if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) ||
-        (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
+    if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) || (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
         cleanValue = cleanValue.slice(1, -1);
     }
-    // Массив для stopSequences
-    if (key === 'stopSequences') {
+    // Пробуем распарсить как JSON (для массивов)
+    if (valueStr.startsWith('[')) {
         try {
             const parsed = JSON.parse(valueStr);
             if (Array.isArray(parsed)) {
@@ -169,19 +275,15 @@ function parseOptionValue(key, valueStr) {
             }
         }
         catch (_a) {
-            return [];
+            // Игнорируем ошибку, попробуем другие варианты
         }
-        return [];
     }
     // Boolean значения
-    if (key === 'penalizeNewline' || key === 'trimWhitespace') {
-        const lower = cleanValue.toLowerCase();
-        if (lower === 'true' || lower === '1' || lower === 'y')
-            return true;
-        if (lower === 'false' || lower === '0' || lower === 'n')
-            return false;
-        return undefined;
-    }
+    const lower = cleanValue.toLowerCase();
+    if (lower === 'true' || lower === '1' || lower === 'y')
+        return true;
+    if (lower === 'false' || lower === '0' || lower === 'n')
+        return false;
     // Числовые значения - заменяем запятую на точку
     const numValue = cleanValue.replace(',', '.');
     const parsed = parseFloat(numValue);

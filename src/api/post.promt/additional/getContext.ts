@@ -1,7 +1,8 @@
 import { type LlamaModel, type LlamaContext, type Llama } from 'node-llama-cpp'
 import { ModelManager, type TModelFile } from '../../../modelManager'
 import type { TResultCode } from '../../../tresult'
-import { Log } from '../../../log';
+import { Log } from '../../../log'
+import { ServerStats } from '../../../serverStats'
 
 let data: { model: LlamaModel; modelInfo: TModelFile } | undefined = undefined
 
@@ -22,12 +23,14 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 				}
 				data = undefined
 			}
+			const loadTimestamp = Date.now()
 			const model = await llama.loadModel({ modelPath: modelInfo.fullFileName })
 			data = {
 				modelInfo,
 				model,
 			}
 			loadModelStatus = 'load'
+			ServerStats().setCurrentModel(modelInfo, loadTimestamp)
 		}
 		const context = await data.model.createContext()
 		if (loadModelStatus === 'load') {
