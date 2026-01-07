@@ -718,19 +718,32 @@
                             // Load format from segment.format
                             if (promt.segment && promt.segment.format) {
                                 try {
-                                    localStorage.setItem('format', promt.segment.format)
+                                    // Parse format object from file
+                                    const formatObj = JSON.parse(promt.segment.format)
+
+                                    // If schema is an object, convert it to formatted string for localStorage
+                                    if (formatObj.schema && typeof formatObj.schema === 'object') {
+                                        formatObj.schema = JSON.stringify(formatObj.schema, null, 4)
+                                    }
+
+                                    // Save to localStorage
+                                    localStorage.setItem('format', JSON.stringify(formatObj))
                                 } catch (err) {
                                     console.error('Failed to save format segment:', err)
                                 }
                             }
 
-                            // Load options from segment.options
-                            if (promt.segment && promt.segment.options) {
-                                try {
-                                    localStorage.setItem('options', promt.segment.options)
-                                } catch (err) {
-                                    console.error('Failed to save options segment:', err)
-                                }
+                            // Load options from options field and merge with defaults
+                            try {
+                                // Parse default options
+                                const defaultOptions = JSON.parse(this.getDefaultOptions())
+
+                                // Merge loaded options with defaults (loaded options override defaults)
+                                const mergedOptions = { ...defaultOptions, ...promt.options }
+
+                                localStorage.setItem('options', JSON.stringify(mergedOptions, null, 2))
+                            } catch (err) {
+                                console.error('Failed to save options:', err)
                             }
 
                             // Load model from segment.model (if found in models list)
@@ -763,24 +776,38 @@
                             user: this.messageUser,
                             system: this.messageSystem || undefined,
                             segment: {},
-                            options: {}
+                            options: undefined
                         }
 
-                        // Add format segment if exists
+                        // Add format segment if exists (with pretty formatting)
                         try {
                             const savedFormat = localStorage.getItem('format')
                             if (savedFormat) {
-                                promt.segment.format = savedFormat
+                                // Parse format object
+                                const formatObj = JSON.parse(savedFormat)
+
+                                // If schema exists and is a string, parse it to object
+                                if (formatObj.schema && typeof formatObj.schema === 'string') {
+                                    try {
+                                        formatObj.schema = JSON.parse(formatObj.schema)
+                                    } catch (e) {
+                                        // If schema is not valid JSON, keep as is
+                                    }
+                                }
+
+                                // Stringify the whole format object with indentation
+                                // Now schema will be formatted as nested object, not as string
+                                promt.segment.format = JSON.stringify(formatObj, null, 4)
                             }
                         } catch (err) {
                             console.error('Failed to load format for saving:', err)
                         }
 
-                        // Add options segment if exists
+                        // Add options if exists
                         try {
                             const savedOptions = localStorage.getItem('options')
                             if (savedOptions) {
-                                promt.segment.options = savedOptions
+                                promt.options = JSON.parse(savedOptions)
                             }
                         } catch (err) {
                             console.error('Failed to load options for saving:', err)

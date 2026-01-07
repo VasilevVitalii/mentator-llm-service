@@ -6,13 +6,13 @@
       "dependencies": {
         "@fastify/static": "^9.0.0",
         "@fastify/swagger": "^9.6.1",
-        "@fastify/swagger-ui": "^5.2.3",
-        "@sinclair/typebox": "^0.34.41",
+        "@fastify/swagger-ui": "^5.2.4",
+        "@sinclair/typebox": "^0.34.47",
         "ajv": "^8.17.1",
         "fastify": "^5.6.2",
         "minimist": "^1.2.8",
         "node-llama-cpp": "^3.14.5",
-        "vv-ai-promt-store": "^1.0.1",
+        "vv-ai-promt-store": "^1.0.2",
         "vv-config-jsonc": "^1.0.6",
       },
       "devDependencies": {
@@ -570,7 +570,7 @@
 
     "validate-npm-package-name": ["validate-npm-package-name@6.0.2", "", {}, "sha512-IUoow1YUtvoBBC06dXs8bR8B9vuA3aJfmQNKMoaPG/OFsPmoQvw8xh+6Ye25Gx9DQhoEom3Pcu9MKHerm/NpUQ=="],
 
-    "vv-ai-promt-store": ["vv-ai-promt-store@1.0.2", "", {}, "sha512-hHtpr6FhEbYi41f04zMj1voV4t0RXkfwAHXIH2xJtQJy4M7ZlLiv9KolBARUBKUpchA1jBz1aLgorfbCTibLTg=="],
+    "vv-ai-promt-store": ["vv-ai-promt-store@1.1.0", "", {}, "sha512-c1WbHp7GRz9NuFfYTySoLtz2VDLjGRkWcXUolqm1JOUI/9bt48bNNCnN7BigbURsrZpLj+YJMRE5/33IMR+gaQ=="],
 
     "vv-config-jsonc": ["vv-config-jsonc@1.0.6", "", { "dependencies": { "@sinclair/typebox": "^0.34.41", "jsonc-parser": "^3.3.1" } }, "sha512-Z/GmuoEh5NZpnJuM36meaf+v9rXJspwzdIH8zeX6IKOkORTJBoyFAGaHk3v2Vzt5qzDBAFZNMM0iisnFDNErIw=="],
 
