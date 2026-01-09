@@ -79,6 +79,29 @@ export async function Go(config: TConfig): Promise<void> {
 		})
 		fastify.decorate('appConfig', config)
 
+		// Error handler for serialization and validation errors
+		fastify.setErrorHandler((error: any, request: FastifyRequest, reply: FastifyReply) => {
+			const errorDetails = {
+				message: error.message,
+				code: error.code,
+				statusCode: error.statusCode,
+				validation: error.validation,
+			}
+			Log().error('FASTIFY', `Error handler for ${request.method} ${request.url}`, JSON.stringify(errorDetails, null, 2))
+
+			// Return a safe error response that matches PromtResponseBadDto
+			const duration = {
+				promtMsec: 0,
+				queueMsec: 0,
+			}
+
+			const statusCode = error.statusCode || 500
+			reply.code(statusCode).send({
+				duration,
+				error: error.message || 'Internal server error',
+			})
+		})
+
 		await fastify.register(fastifySwagger, {
 			openapi: {
 				info: {

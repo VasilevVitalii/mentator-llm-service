@@ -570,7 +570,7 @@
 
     "validate-npm-package-name": ["validate-npm-package-name@6.0.2", "", {}, "sha512-IUoow1YUtvoBBC06dXs8bR8B9vuA3aJfmQNKMoaPG/OFsPmoQvw8xh+6Ye25Gx9DQhoEom3Pcu9MKHerm/NpUQ=="],
 
-    "vv-ai-promt-store": ["vv-ai-promt-store@2.0.1", "", { "dependencies": { "@sinclair/typebox": "^0.34.47", "ajv": "^8.17.1" } }, "sha512-1/cNzQKk6vXLf0dk+CPFAZB4n3z0Dwf0zgbbIlL0UtVBiYq10SoyxU+hbC/J3wtG2YN4O9bugFYVPKqYVZdHWw=="],
+    "vv-ai-promt-store": ["vv-ai-promt-store@2.0.2", "", { "dependencies": { "@sinclair/typebox": "^0.34.47", "ajv": "^8.17.1" } }, "sha512-R/y5bzFzcv3A7AIODZjMhFxxO1NEw4b1hTPY22BVoOaceMpy9EEKWiSt8GeAS3+5L3uKN1tM30hAk5SBG/jCww=="],
 
     "vv-config-jsonc": ["vv-config-jsonc@1.0.6", "", { "dependencies": { "@sinclair/typebox": "^0.34.41", "jsonc-parser": "^3.3.1" } }, "sha512-Z/GmuoEh5NZpnJuM36meaf+v9rXJspwzdIH8zeX6IKOkORTJBoyFAGaHk3v2Vzt5qzDBAFZNMM0iisnFDNErIw=="],
 

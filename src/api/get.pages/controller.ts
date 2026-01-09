@@ -10,8 +10,12 @@ export async function controller(fastify: FastifyInstance) {
 		const filePath = join(staticDir, filename)
 		const result = await fsReadFile(filePath)
 
-		if (!result.ok || !result.result) {
+		if (!result.ok) {
 			throw new Error(`Failed to read ${filename}: ${result.error || 'File not found'}`)
+		}
+
+		if (!result.result) {
+			throw new Error(`Failed to read ${filename}: File is empty`)
 		}
 
 		return result.result

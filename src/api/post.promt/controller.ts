@@ -140,18 +140,21 @@ export async function controller(fastify: FastifyInstance) {
 						}
 						const responseJson = responseRes.result
 
-						const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
-						if (!responseValidationRes.ok) {
-							const duration = {
-								promtMsec: durationPromt.getMsec(),
-								queueMsec: queueMsec,
+						// Only validate if we parsed as JSON
+						if (parseAsJson) {
+							const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
+							if (!responseValidationRes.ok) {
+								const duration = {
+									promtMsec: durationPromt.getMsec(),
+									queueMsec: queueMsec,
+								}
+								res.code(responseValidationRes.errorCode).send({
+									duration,
+									error: responseValidationRes.error,
+								})
+								await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromtExtra)
+								return
 							}
-							res.code(responseValidationRes.errorCode).send({
-								duration,
-								error: responseValidationRes.error,
-							})
-							await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromtExtra)
-							return
 						}
 
 						const duration = {

@@ -5,7 +5,7 @@ export const PromtResponseBadDto = Type.Object({
 		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
 		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
 	}),
-	error: Type.Optional(Type.String()),
+	error: Type.String({ description: 'Error message' }),
 })
 
 export type TPromtResponseBad = Static<typeof PromtResponseBadDto>
