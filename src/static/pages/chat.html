@@ -763,13 +763,13 @@
                             let loadedSchema = ''
                             let loadedUseGrammar = true
 
-                            // Load grammar from prompt
-                            if (promt.grammar) {
+                            // Load jsonresponse from prompt
+                            if (promt.jsonresponse) {
                                 try {
-                                    loadedSchema = promt.grammar
+                                    loadedSchema = promt.jsonresponse
                                     loadedUseGrammar = true
                                 } catch (err) {
-                                    console.error('Failed to load grammar from prompt:', err)
+                                    console.error('Failed to load jsonresponse from prompt:', err)
                                 }
                             }
 
@@ -842,14 +842,14 @@
                             console.error('Failed to add mentator-llm-service segment:', err)
                         }
 
-                        // Add grammar if useGrammar is enabled
+                        // Add jsonresponse if useGrammar is enabled
                         if (this.formatUseGrammar && this.formatSchema && this.formatSchema.trim().length > 0) {
                             try {
                                 // Validate that it's valid JSON
                                 JSON.parse(this.formatSchema)
-                                promt.grammar = this.formatSchema
+                                promt.jsonresponse = this.formatSchema
                             } catch (err) {
-                                console.error('Failed to add grammar to prompt (invalid JSON):', err)
+                                console.error('Failed to add jsonresponse to prompt (invalid JSON):', err)
                             }
                         }
 
