@@ -2,7 +2,7 @@ import { LlamaChatSession } from 'node-llama-cpp'
 import type { TResultCode } from '../../../tresult'
 import type { TGenerationParams } from './getGenerationParams'
 
-export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number): Promise<TResultCode<any>> {
+export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, parseAsJson: boolean = true): Promise<TResultCode<any>> {
     try {
         const responseTextRes = await GetResponseText(session, message, params, durationMsec)
         if (!responseTextRes.ok) {
@@ -12,6 +12,13 @@ export async function GetResponse(session: LlamaChatSession, message: string, pa
             return {ok: false, errorCode: 400, error: 'response text - empty string'}
         }
         let text = responseTextRes.result.trim()
+
+        // If parseAsJson is false, return text as is
+        if (!parseAsJson) {
+            return {ok: true, result: text}
+        }
+
+        // Extract JSON from markdown code blocks if present
         const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
         if (jsonMatch && jsonMatch[1]) {
             text = jsonMatch[1].trim()

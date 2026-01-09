@@ -1,5 +1,5 @@
 import type { Llama, LlamaGrammar } from 'node-llama-cpp'
-import { convertJsonSchemaToGbnf } from 'vv-ai-promt-store'
+import { ConvertJsonSchemaToGbnf } from 'vv-ai-promt-store'
 import type { TResultCode } from '../../../tresult'
 import type { TPromtRequest } from '../dto'
 import type { TConfig } from '../../../config'
@@ -67,7 +67,7 @@ export async function getGenerationParams(llama: Llama, options: TConfig['defaul
 		}
 
 		if (format?.useGrammar && format.jsonSchema) {
-			const gbnfResult = convertJsonSchemaToGbnf(format.jsonSchema)
+			const gbnfResult = ConvertJsonSchemaToGbnf(format.jsonSchema)
 			if ('error' in gbnfResult) {
 				return { ok: false, error: `on convert grammar: ${gbnfResult.error}`, errorCode: 400 }
 			}

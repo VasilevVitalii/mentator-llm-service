@@ -123,7 +123,9 @@ export async function controller(fastify: FastifyInstance) {
 						}
 						session = sessionRes.result
 
-						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec)
+						// Only parse as JSON if format is specified
+						const parseAsJson = body.format !== undefined && body.format !== null
+						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec, parseAsJson)
 						if (!responseRes.ok) {
 							const duration = {
 								promtMsec: durationPromt.getMsec(),

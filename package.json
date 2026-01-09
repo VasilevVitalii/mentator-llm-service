@@ -26,7 +26,7 @@
         "fastify": "^5.6.2",
         "minimist": "^1.2.8",
         "node-llama-cpp": "^3.14.5",
-        "vv-ai-promt-store": "^1.1.3",
+        "vv-ai-promt-store": "^1.1.6",
         "vv-config-jsonc": "^1.0.6"
     }
 }

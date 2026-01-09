@@ -1,10 +1,7 @@
 import type { FastifyInstance } from 'fastify'
-import { convertJsonSchemaToGbnf } from 'vv-ai-promt-store'
+import { ConvertJsonSchemaToGbnf, CheckJsonSchema } from 'vv-ai-promt-store'
 import { CheckFormatRequestDto, CheckFormatResponseDto, type TCheckFormatRequest, type TCheckFormatResponse } from './dto'
 import { Log } from '../../log'
-import Ajv from 'ajv'
-
-const ajv = new Ajv({ strict: false, allErrors: true })
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -28,19 +25,18 @@ export async function controller(fastify: FastifyInstance) {
 			try {
 				const { schema } = req.body
 
-				// Step 1: Validate JSON Schema with AJV
-				try {
-					ajv.compile(schema)
-				} catch (err: any) {
+				// Step 1: Validate JSON Schema structure
+				const schemaError = CheckJsonSchema(JSON.stringify(schema))
+				if (schemaError) {
 					res.send({
-						error: `JSON Schema validation failed: ${err.message || 'Invalid JSON Schema'}`,
+						error: `JSON Schema validation failed: ${schemaError}`,
 					})
 					Log().trace(pipe, req.url)
 					return
 				}
 
 				// Step 2: Validate GBNF conversion
-				const gbnfResult = convertJsonSchemaToGbnf(schema)
+				const gbnfResult = ConvertJsonSchemaToGbnf(schema)
 				if ('error' in gbnfResult) {
 					res.send({
 						error: `GBNF conversion failed: ${gbnfResult.error}`,

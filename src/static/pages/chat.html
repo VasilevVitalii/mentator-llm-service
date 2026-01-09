@@ -117,6 +117,12 @@
             <div class="modal-window" role="dialog" aria-labelledby="format-modal-title" aria-modal="true">
                 <h2 id="format-modal-title" class="modal-title">Format Response</h2>
 
+                <div class="modal-controls" style="margin-bottom: 8px;">
+                    <div class="modal-left-controls">
+                        <button class="form-button" style="width: 140px;" @click="onFormatSetExample">set example</button>
+                    </div>
+                </div>
+
                 <div class="modal-form-group">
                     <textarea
                         ref="formatTextarea"
@@ -132,7 +138,6 @@
 
                 <div class="modal-controls">
                     <div class="modal-left-controls">
-                        <button class="form-button width-120" @click="onFormatSetExample">set example</button>
                         <button class="form-button width-120" @click="onFormatCheck">check</button>
                         <div class="modal-checkbox-group" title="Convert JSON Schema to GBNF grammar to enforce valid JSON output from LLM">
                             <input
@@ -160,6 +165,13 @@
             <div class="modal-window" role="dialog" aria-labelledby="options-modal-title" aria-modal="true">
                 <h2 id="options-modal-title" class="modal-title">LLM Options</h2>
 
+                <div class="modal-controls" style="margin-bottom: 8px;">
+                    <div class="modal-left-controls">
+                        <button class="form-button" style="width: 140px;" @click="onOptionsSetExample">set example</button>
+                        <button class="form-button" style="width: 220px;" @click="onOptionsSetExampleForJson">set example for json</button>
+                    </div>
+                </div>
+
                 <div class="modal-form-group">
                     <textarea
                         ref="optionsTextarea"
@@ -175,8 +187,6 @@
 
                 <div class="modal-controls">
                     <div class="modal-left-controls">
-                        <button class="form-button width-120" @click="onOptionsSetExample">set example</button>
-                        <button class="form-button width-120" @click="onOptionsSetExampleForJson">set example for json</button>
                         <button class="form-button width-120" @click="onOptionsCheck">check</button>
                     </div>
                     <div class="modal-right-controls">
@@ -212,11 +222,6 @@
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
-    <script type="module">
-        import { PromtLoad, PromtStore } from '/static/lib/vv-ai-promt-store.js'
-        window.PromtLoad = PromtLoad
-        window.PromtStore = PromtStore
-    </script>
     <script>
         const { createApp } = Vue
 
@@ -578,10 +583,16 @@
                     this.formatValidationState = null
                     this.formatErrorMessage = ''
                 },
-                onFormatSetExample() {
-                    this.formatSchema = this.getDefaultSchema()
-                    this.formatValidationState = null
-                    this.formatErrorMessage = ''
+                async onFormatSetExample() {
+                    try {
+                        const response = await fetch('/api/example/format')
+                        const example = await response.text()
+                        this.formatSchema = example
+                        this.formatValidationState = null
+                        this.formatErrorMessage = ''
+                    } catch (err) {
+                        console.error('Failed to fetch format example:', err)
+                    }
                 },
                 onFormatOk() {
                     this.saveFormatSettings()
@@ -615,54 +626,6 @@
                             alert('Failed to save: localStorage quota exceeded. Please reduce the options size.')
                         }
                     }
-                },
-                getDefaultOptions() {
-                    return `{
-  "temperature": 0.0,
-  "topP": 0.1,
-  "topK": 10,
-  "minP": 0.0,
-  "maxTokens": 4096,
-  "repeatPenalty": 1.0,
-  "repeatPenaltyNum": 0,
-  "presencePenalty": 0.0,
-  "frequencyPenalty": 0.0,
-  "mirostat": 0,
-  "mirostatTau": 5.0,
-  "mirostatEta": 0.1,
-  "penalizeNewline": false,
-  "stopSequences": [],
-  "trimWhitespace": true,
-  "seed": null,
-  "tokenBias": null,
-  "evaluationPriority": null,
-  "contextShiftSize": null,
-  "disableContextShift": null
-}`
-                },
-                getDefaultOptionsForJson() {
-                    return `{
-  "temperature": 0.0,
-  "topP": 1.0,
-  "topK": 0,
-  "minP": 0.0,
-  "maxTokens": 4096,
-  "repeatPenalty": 1.0,
-  "repeatPenaltyNum": 0,
-  "presencePenalty": 0.0,
-  "frequencyPenalty": 0.0,
-  "mirostat": 0,
-  "mirostatTau": 5.0,
-  "mirostatEta": 0.1,
-  "penalizeNewline": false,
-  "stopSequences": [],
-  "trimWhitespace": true,
-  "seed": null,
-  "tokenBias": null,
-  "evaluationPriority": null,
-  "contextShiftSize": null,
-  "disableContextShift": null
-}`
                 },
                 onOptionsClick() {
                     this.loadOptionsSettings()
@@ -706,15 +669,27 @@
                     this.optionsValidationState = null
                     this.optionsErrorMessage = ''
                 },
-                onOptionsSetExample() {
-                    this.optionsJson = this.getDefaultOptions()
-                    this.optionsValidationState = null
-                    this.optionsErrorMessage = ''
+                async onOptionsSetExample() {
+                    try {
+                        const response = await fetch('/api/example/options')
+                        const example = await response.text()
+                        this.optionsJson = example
+                        this.optionsValidationState = null
+                        this.optionsErrorMessage = ''
+                    } catch (err) {
+                        console.error('Failed to fetch options example:', err)
+                    }
                 },
-                onOptionsSetExampleForJson() {
-                    this.optionsJson = this.getDefaultOptionsForJson()
-                    this.optionsValidationState = null
-                    this.optionsErrorMessage = ''
+                async onOptionsSetExampleForJson() {
+                    try {
+                        const response = await fetch('/api/example/optionsjson')
+                        const example = await response.text()
+                        this.optionsJson = example
+                        this.optionsValidationState = null
+                        this.optionsErrorMessage = ''
+                    } catch (err) {
+                        console.error('Failed to fetch options JSON example:', err)
+                    }
                 },
                 onOptionsOk() {
                     this.saveOptionsSettings()
@@ -739,8 +714,13 @@
                             // Read file content
                             const content = await file.text()
 
-                            // Parse with PromtLoad
-                            const promts = window.PromtLoad(content)
+                            // Parse with PromtLoad via API
+                            const response = await fetch('/api/promtload', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ content })
+                            })
+                            const promts = await response.json()
 
                             if (!promts || promts.length === 0) {
                                 alert('No prompts found in file')
@@ -758,33 +738,13 @@
                             localStorage.setItem('message.user', this.messageUser)
                             localStorage.setItem('message.system', this.messageSystem)
 
-                            // Load format from segment.format
-                            if (promt.segment && promt.segment.format) {
-                                try {
-                                    // Parse format object from file
-                                    const formatObj = JSON.parse(promt.segment.format)
-
-                                    // If schema is an object, convert it to formatted string for localStorage
-                                    if (formatObj.schema && typeof formatObj.schema === 'object') {
-                                        formatObj.schema = JSON.stringify(formatObj.schema, null, 4)
-                                    }
-
-                                    // Save to localStorage
-                                    localStorage.setItem('format', JSON.stringify(formatObj))
-                                } catch (err) {
-                                    console.error('Failed to save format segment:', err)
-                                }
-                            }
-
-                            // Load options from options field and merge with defaults
+                            // Load options from options field (or clear if not present)
                             try {
-                                // Parse default options
-                                const defaultOptions = JSON.parse(this.getDefaultOptions())
-
-                                // Merge loaded options with defaults (loaded options override defaults)
-                                const mergedOptions = { ...defaultOptions, ...promt.options }
-
-                                localStorage.setItem('options', JSON.stringify(mergedOptions, null, 2))
+                                if (promt.options) {
+                                    localStorage.setItem('options', JSON.stringify(promt.options, null, 2))
+                                } else {
+                                    localStorage.setItem('options', '')
+                                }
                             } catch (err) {
                                 console.error('Failed to save options:', err)
                             }
@@ -799,15 +759,40 @@
                                 }
                             }
 
+                            // Load grammar and format settings (or clear if not present)
+                            let loadedSchema = ''
+                            let loadedUseGrammar = true
+
                             // Load grammar from prompt
                             if (promt.grammar) {
                                 try {
-                                    this.formatSchema = promt.grammar
-                                    this.formatUseGrammar = true
+                                    loadedSchema = promt.grammar
+                                    loadedUseGrammar = true
                                 } catch (err) {
                                     console.error('Failed to load grammar from prompt:', err)
                                 }
                             }
+
+                            // Load useGrammar from mentator-llm-service segment (overrides default)
+                            if (promt.segment && promt.segment['mentator-llm-service']) {
+                                try {
+                                    const serviceConfig = JSON.parse(promt.segment['mentator-llm-service'])
+                                    if (typeof serviceConfig.useGrammar === 'boolean') {
+                                        loadedUseGrammar = serviceConfig.useGrammar
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to load mentator-llm-service segment:', err)
+                                }
+                            }
+
+                            // Update format in localStorage
+                            this.formatSchema = loadedSchema
+                            this.formatUseGrammar = loadedUseGrammar
+                            const formatSettings = {
+                                schema: loadedSchema,
+                                useGrammar: loadedUseGrammar
+                            }
+                            localStorage.setItem('format', JSON.stringify(formatSettings))
 
                             // Track loaded file
                             this.loadedFileName = file.name
@@ -822,7 +807,7 @@
 
                     input.click()
                 },
-                onSaveClick() {
+                async onSaveClick() {
                     try {
                         // Create promt object
                         const promt = {
@@ -830,30 +815,6 @@
                             system: this.messageSystem || undefined,
                             segment: {},
                             options: undefined
-                        }
-
-                        // Add format segment if exists (with pretty formatting)
-                        try {
-                            const savedFormat = localStorage.getItem('format')
-                            if (savedFormat) {
-                                // Parse format object
-                                const formatObj = JSON.parse(savedFormat)
-
-                                // If schema exists and is a string, parse it to object
-                                if (formatObj.schema && typeof formatObj.schema === 'string') {
-                                    try {
-                                        formatObj.schema = JSON.parse(formatObj.schema)
-                                    } catch (e) {
-                                        // If schema is not valid JSON, keep as is
-                                    }
-                                }
-
-                                // Stringify the whole format object with indentation
-                                // Now schema will be formatted as nested object, not as string
-                                promt.segment.format = JSON.stringify(formatObj, null, 4)
-                            }
-                        } catch (err) {
-                            console.error('Failed to load format for saving:', err)
                         }
 
                         // Add options if exists
@@ -871,6 +832,16 @@
                             promt.segment.model = this.selectedModel
                         }
 
+                        // Add mentator-llm-service segment with useGrammar
+                        try {
+                            const serviceConfig = {
+                                useGrammar: this.formatUseGrammar
+                            }
+                            promt.segment['mentator-llm-service'] = JSON.stringify(serviceConfig)
+                        } catch (err) {
+                            console.error('Failed to add mentator-llm-service segment:', err)
+                        }
+
                         // Add grammar if useGrammar is enabled
                         if (this.formatUseGrammar && this.formatSchema && this.formatSchema.trim().length > 0) {
                             try {
@@ -882,8 +853,13 @@
                             }
                         }
 
-                        // Serialize with PromtStore
-                        const content = window.PromtStore([promt])
+                        // Serialize with PromtStore via API
+                        const response = await fetch('/api/promtstore', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ promts: [promt] })
+                        })
+                        const content = await response.text()
 
                         // Determine filename
                         let filename
@@ -926,15 +902,15 @@
                             this.selectedModel = this.models[0].name
                         }
 
-                        // Reset format to defaults
+                        // Clear format
                         const defaultFormat = {
-                            schema: this.getDefaultSchema(),
+                            schema: '',
                             useGrammar: true
                         }
                         localStorage.setItem('format', JSON.stringify(defaultFormat))
 
-                        // Reset options to defaults
-                        localStorage.setItem('options', this.getDefaultOptions())
+                        // Clear options
+                        localStorage.setItem('options', '')
 
                         // Clear response
                         this.response = ''
@@ -986,9 +962,12 @@
                             const savedFormat = localStorage.getItem('format')
                             if (savedFormat) {
                                 const parsed = JSON.parse(savedFormat)
-                                formatSettings = {
-                                    useGrammar: parsed.useGrammar,
-                                    jsonSchema: JSON.parse(parsed.schema)
+                                // Only set formatSettings if schema is not empty
+                                if (parsed.schema && parsed.schema.trim().length > 0) {
+                                    formatSettings = {
+                                        useGrammar: parsed.useGrammar,
+                                        jsonSchema: JSON.parse(parsed.schema)
+                                    }
                                 }
                             }
                         } catch (err) {
@@ -999,7 +978,7 @@
                         let options = null
                         try {
                             const savedOptions = localStorage.getItem('options')
-                            if (savedOptions) {
+                            if (savedOptions && savedOptions.trim().length > 0) {
                                 options = JSON.parse(savedOptions)
                             }
                         } catch (err) {

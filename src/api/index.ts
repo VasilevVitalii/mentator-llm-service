@@ -6,7 +6,23 @@ import { controller as promtController } from './post.promt/controller'
 import { controller as checkformatController } from './post.check.format/controller'
 import { controller as checkoptionsController } from './post.check.options/controller'
 import { controller as statdataController } from './get.statdata/controller'
+import { controller as exampleFormatController } from './get.example.format/controller'
+import { controller as exampleOptionsController } from './get.example.options/controller'
+import { controller as exampleOptionsJsonController } from './get.example.optionsjson/controller'
+import { controller as promtLoadController } from './post.promt.load/controller'
+import { controller as promtStoreController } from './post.promt.store/controller'
 
-export const controllers = [pagesController, versionController, modelsController, promtController, checkformatController, checkoptionsController, statdataController] as Array<
-	(fastify: FastifyInstance) => Promise<void>
->
+export const controllers = [
+	pagesController,
+	versionController,
+	modelsController,
+	promtController,
+	checkformatController,
+	checkoptionsController,
+	statdataController,
+	exampleFormatController,
+	exampleOptionsController,
+	exampleOptionsJsonController,
+	promtLoadController,
+	promtStoreController,
+] as Array<(fastify: FastifyInstance) => Promise<void>>
