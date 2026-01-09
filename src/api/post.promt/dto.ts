@@ -8,7 +8,7 @@ export const PromtRequestDto = Type.Object({
 		user: Type.String({ description: 'User prompt' }),
 	}),
 	durationMsec: Type.Number({ description: 'Maximum duration in milliseconds' }),
-	options: Type.Optional(SPromtOptions as any),
+	options: Type.Optional(SPromtOptions),
 	format: Type.Optional(
 		Type.Object({
 			useGrammar: Type.Boolean({

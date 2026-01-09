@@ -624,7 +624,12 @@
   "mirostatEta": 0.1,
   "penalizeNewline": false,
   "stopSequences": [],
-  "trimWhitespace": true
+  "trimWhitespace": true,
+  "seed": null,
+  "tokenBias": null,
+  "evaluationPriority": null,
+  "contextShiftSize": null,
+  "disableContextShift": null
 }`
                 },
                 onOptionsClick() {
@@ -756,6 +761,16 @@
                                 }
                             }
 
+                            // Load grammar from prompt
+                            if (promt.grammar) {
+                                try {
+                                    this.formatSchema = promt.grammar
+                                    this.formatUseGrammar = true
+                                } catch (err) {
+                                    console.error('Failed to load grammar from prompt:', err)
+                                }
+                            }
+
                             // Track loaded file
                             this.loadedFileName = file.name
                             this.loadedFileHadSinglePromt = promts.length === 1
@@ -816,6 +831,17 @@
                         // Add model segment if exists
                         if (this.selectedModel) {
                             promt.segment.model = this.selectedModel
+                        }
+
+                        // Add grammar if useGrammar is enabled
+                        if (this.formatUseGrammar && this.formatSchema && this.formatSchema.trim().length > 0) {
+                            try {
+                                // Validate that it's valid JSON
+                                JSON.parse(this.formatSchema)
+                                promt.grammar = this.formatSchema
+                            } catch (err) {
+                                console.error('Failed to add grammar to prompt (invalid JSON):', err)
+                            }
                         }
 
                         // Serialize with PromtStore
