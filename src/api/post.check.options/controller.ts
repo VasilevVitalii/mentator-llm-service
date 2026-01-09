@@ -60,8 +60,8 @@ export async function controller(fastify: FastifyInstance) {
 				}
 
 				// Parse and validate with package function (never throws)
-				// useAllOptions=true adds defaults for missing parameters
-				const validatedOptions = PromtOptionsParse('json', inputOptions, true)
+				// useAllOptions=false does not add defaults for missing parameters
+				const validatedOptions = PromtOptionsParse('json', inputOptions, false)
 
 				// Success: valid and complete options
 				const response = { options: validatedOptions, error: '' }

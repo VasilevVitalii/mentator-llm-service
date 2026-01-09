@@ -132,6 +132,7 @@
 
                 <div class="modal-controls">
                     <div class="modal-left-controls">
+                        <button class="form-button width-120" @click="onFormatSetExample">set example</button>
                         <button class="form-button width-120" @click="onFormatCheck">check</button>
                         <div class="modal-checkbox-group" title="Convert JSON Schema to GBNF grammar to enforce valid JSON output from LLM">
                             <input
@@ -174,6 +175,8 @@
 
                 <div class="modal-controls">
                     <div class="modal-left-controls">
+                        <button class="form-button width-120" @click="onOptionsSetExample">set example</button>
+                        <button class="form-button width-120" @click="onOptionsSetExampleForJson">set example for json</button>
                         <button class="form-button width-120" @click="onOptionsCheck">check</button>
                     </div>
                     <div class="modal-right-controls">
@@ -419,15 +422,15 @@
                         const saved = localStorage.getItem('format')
                         if (saved) {
                             const parsed = JSON.parse(saved)
-                            this.formatSchema = parsed.schema || this.getDefaultSchema()
+                            this.formatSchema = parsed.schema || ''
                             this.formatUseGrammar = parsed.useGrammar !== undefined ? parsed.useGrammar : true
                         } else {
-                            this.formatSchema = this.getDefaultSchema()
+                            this.formatSchema = ''
                             this.formatUseGrammar = true
                         }
                     } catch (err) {
                         console.error('Failed to load format settings:', err)
-                        this.formatSchema = this.getDefaultSchema()
+                        this.formatSchema = ''
                         this.formatUseGrammar = true
                     }
                 },
@@ -575,6 +578,11 @@
                     this.formatValidationState = null
                     this.formatErrorMessage = ''
                 },
+                onFormatSetExample() {
+                    this.formatSchema = this.getDefaultSchema()
+                    this.formatValidationState = null
+                    this.formatErrorMessage = ''
+                },
                 onFormatOk() {
                     this.saveFormatSettings()
                     this.formatModalOpen = false
@@ -591,11 +599,11 @@
                         if (saved) {
                             this.optionsJson = saved
                         } else {
-                            this.optionsJson = this.getDefaultOptions()
+                            this.optionsJson = ''
                         }
                     } catch (err) {
                         console.error('Failed to load options settings:', err)
-                        this.optionsJson = this.getDefaultOptions()
+                        this.optionsJson = ''
                     }
                 },
                 saveOptionsSettings() {
@@ -613,6 +621,30 @@
   "temperature": 0.0,
   "topP": 0.1,
   "topK": 10,
+  "minP": 0.0,
+  "maxTokens": 4096,
+  "repeatPenalty": 1.0,
+  "repeatPenaltyNum": 0,
+  "presencePenalty": 0.0,
+  "frequencyPenalty": 0.0,
+  "mirostat": 0,
+  "mirostatTau": 5.0,
+  "mirostatEta": 0.1,
+  "penalizeNewline": false,
+  "stopSequences": [],
+  "trimWhitespace": true,
+  "seed": null,
+  "tokenBias": null,
+  "evaluationPriority": null,
+  "contextShiftSize": null,
+  "disableContextShift": null
+}`
+                },
+                getDefaultOptionsForJson() {
+                    return `{
+  "temperature": 0.0,
+  "topP": 1.0,
+  "topK": 0,
   "minP": 0.0,
   "maxTokens": 4096,
   "repeatPenalty": 1.0,
@@ -661,13 +693,9 @@
                         if (result.error) {
                             this.optionsValidationState = 'invalid'
                             this.optionsErrorMessage = result.error
-                            // Update textarea with completed options even if there's an error
-                            this.optionsJson = JSON.stringify(result.options, null, 2)
                         } else {
                             this.optionsValidationState = 'valid'
                             this.optionsErrorMessage = ''
-                            // Update textarea with completed options
-                            this.optionsJson = JSON.stringify(result.options, null, 2)
                         }
                     } catch (err) {
                         this.optionsValidationState = 'invalid'
@@ -675,6 +703,16 @@
                     }
                 },
                 onOptionsTextareaInput() {
+                    this.optionsValidationState = null
+                    this.optionsErrorMessage = ''
+                },
+                onOptionsSetExample() {
+                    this.optionsJson = this.getDefaultOptions()
+                    this.optionsValidationState = null
+                    this.optionsErrorMessage = ''
+                },
+                onOptionsSetExampleForJson() {
+                    this.optionsJson = this.getDefaultOptionsForJson()
                     this.optionsValidationState = null
                     this.optionsErrorMessage = ''
                 },
