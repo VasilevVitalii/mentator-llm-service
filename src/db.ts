@@ -241,6 +241,100 @@ class DbClass {
 		return sorted[Math.max(0, index)] || 0
 	}
 
+	async getCoreLogs(afterId: number, limit: number): Promise<
+		Array<{
+			id: number
+			ts: number
+			pipe: string
+			kind: string
+			message: string
+			extra?: string
+		}>
+	> {
+		if (this.error) return []
+
+		return await this._queue.add(async () => {
+			try {
+				const logsQuery = this._db!.prepare(`
+					SELECT id, ts, pipe, kind, message
+					FROM log
+					WHERE id > ?
+					ORDER BY id DESC
+					LIMIT ?
+				`)
+				const logs = logsQuery.all(afterId, limit) as Array<{
+					id: number
+					ts: number
+					pipe: string
+					kind: string
+					message: string
+				}>
+
+				const extraQuery = this._db!.prepare('SELECT data FROM logExtra WHERE id = ?')
+
+				return logs.map(log => {
+					const extraRow = extraQuery.get(log.id) as { data: string } | undefined
+					return {
+						...log,
+						extra: extraRow?.data,
+					}
+				})
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on get core logs: ${err}`)
+				return []
+			}
+		})
+	}
+
+	async getCoreLogsByDate(
+		dateStart: number,
+		dateEnd: number,
+	): Promise<
+		Array<{
+			id: number
+			ts: number
+			pipe: string
+			kind: string
+			message: string
+			extra?: string
+		}>
+	> {
+		if (this.error) return []
+
+		return await this._queue.add(async () => {
+			try {
+				const logsQuery = this._db!.prepare(`
+					SELECT id, ts, pipe, kind, message
+					FROM log
+					WHERE ts >= ? AND ts < ?
+					ORDER BY id ASC
+				`)
+				const logs = logsQuery.all(dateStart, dateEnd) as Array<{
+					id: number
+					ts: number
+					pipe: string
+					kind: string
+					message: string
+				}>
+
+				const extraQuery = this._db!.prepare('SELECT data FROM logExtra WHERE id = ?')
+
+				return logs.map(log => {
+					const extraRow = extraQuery.get(log.id) as { data: string } | undefined
+					return {
+						...log,
+						extra: extraRow?.data,
+					}
+				})
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on get core logs by date: ${err}`)
+				return []
+			}
+		})
+	}
+
 	close(): void {
 		if (this._db) {
 			this._db.close()

@@ -11,6 +11,8 @@ import { controller as exampleOptionsController } from './get.example.options/co
 import { controller as exampleOptionsJsonController } from './get.example.optionsjson/controller'
 import { controller as promtLoadController } from './post.promt.load/controller'
 import { controller as promtStoreController } from './post.promt.store/controller'
+import { controller as corelogsController } from './get.corelogs/controller'
+import { controller as corelogsDownloadController } from './post.corelogs.download/controller'
 
 export const controllers = [
 	pagesController,
@@ -25,4 +27,6 @@ export const controllers = [
 	exampleOptionsJsonController,
 	promtLoadController,
 	promtStoreController,
+	corelogsController,
+	corelogsDownloadController,
 ] as Array<(fastify: FastifyInstance) => Promise<void>>

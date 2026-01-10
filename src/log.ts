@@ -9,6 +9,51 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 	trace: 2,
 }
 const CLEANUP_INTERVAL_MS = 1000 * 60 * 60
+const MAX_EXTRA_LENGTH = 500
+
+function truncateExtra(extra: string | undefined): string | undefined {
+	if (!extra) return undefined
+
+	const lines = extra.split('\n')
+	let requestSection = ''
+	let responseSection = ''
+	let inRequest = false
+	let inResponse = false
+
+	for (const line of lines) {
+		if (line.startsWith('Request:')) {
+			inRequest = true
+			inResponse = false
+			requestSection = line
+			continue
+		}
+		if (line.startsWith('Response:')) {
+			inResponse = true
+			inRequest = false
+			responseSection = line
+			continue
+		}
+		if (inRequest && requestSection.length < MAX_EXTRA_LENGTH + 8) {
+			requestSection += '\n' + line
+		}
+		if (inResponse && responseSection.length < MAX_EXTRA_LENGTH + 9) {
+			responseSection += '\n' + line
+		}
+	}
+
+	let result = ''
+	if (requestSection) {
+		const truncated = requestSection.length > MAX_EXTRA_LENGTH + 8 ? requestSection.substring(0, MAX_EXTRA_LENGTH + 8) + '...' : requestSection
+		result += truncated
+	}
+	if (responseSection) {
+		if (result) result += '\n\n'
+		const truncated = responseSection.length > MAX_EXTRA_LENGTH + 9 ? responseSection.substring(0, MAX_EXTRA_LENGTH + 9) + '...' : responseSection
+		result += truncated
+	}
+
+	return result || undefined
+}
 
 class LogClass {
 	private _level: LogLevel = 'debug'
@@ -48,45 +93,10 @@ class LogClass {
 		const timestampISO = new Date(timestamp).toISOString()
 		this._console(level, `[${timestampISO}] [${level}] [${pipe}] ${message}`)
 		if (extra) {
-			// Limit extra output to first 200 chars per section for console
-			const lines = extra.split('\n')
-			let requestSection = ''
-			let responseSection = ''
-			let inRequest = false
-			let inResponse = false
-
-			for (const line of lines) {
-				if (line.startsWith('Request:')) {
-					inRequest = true
-					inResponse = false
-					requestSection = line
-					continue
-				}
-				if (line.startsWith('Response:')) {
-					inResponse = true
-					inRequest = false
-					responseSection = line
-					continue
-				}
-				if (inRequest && requestSection.length < 200 + 8) {
-					requestSection += '\n' + line
-				}
-				if (inResponse && responseSection.length < 200 + 9) {
-					responseSection += '\n' + line
-				}
-			}
-
-			if (requestSection) {
-				const truncated = requestSection.length > 208 ? requestSection.substring(0, 208) + '...' : requestSection
-				const requestLines = truncated.split('\n')
-				for (const line of requestLines) {
-					this._console(level, `        ${line}`)
-				}
-			}
-			if (responseSection) {
-				const truncated = responseSection.length > 209 ? responseSection.substring(0, 209) + '...' : responseSection
-				const responseLines = truncated.split('\n')
-				for (const line of responseLines) {
+			const truncated = truncateExtra(extra)
+			if (truncated) {
+				const lines = truncated.split('\n')
+				for (const line of lines) {
 					this._console(level, `        ${line}`)
 				}
 			}
@@ -121,8 +131,9 @@ class LogClass {
 			timestamp = pipeOrParam.ts ?? Date.now()
 		}
 
+		const truncatedExt = truncateExtra(ext)
 		this._logToConsole(timestamp, 'error', pipe, msg, ext)
-		Db().editSaveLog('error', pipe, msg, ext, timestamp)
+		Db().editSaveLog('error', pipe, msg, truncatedExt, timestamp)
 	}
 
 	debug(param: { pipe: string; message: string; extra?: string; ts?: number }): void
@@ -147,8 +158,9 @@ class LogClass {
 			timestamp = pipeOrParam.ts ?? Date.now()
 		}
 
+		const truncatedExt = truncateExtra(ext)
 		this._logToConsole(timestamp, 'debug', pipe, msg, ext)
-		Db().editSaveLog('debug', pipe, msg, ext, timestamp)
+		Db().editSaveLog('debug', pipe, msg, truncatedExt, timestamp)
 	}
 
 	trace(param: { pipe: string; message: string; extra?: string; ts?: number }): void
@@ -173,8 +185,9 @@ class LogClass {
 			timestamp = pipeOrParam.ts ?? Date.now()
 		}
 
+		const truncatedExt = truncateExtra(ext)
 		this._logToConsole(timestamp, 'trace', pipe, msg, ext)
-		Db().editSaveLog('trace', pipe, msg, ext, timestamp)
+		Db().editSaveLog('trace', pipe, msg, truncatedExt, timestamp)
 	}
 }
 

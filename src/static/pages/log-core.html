@@ -5,6 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Core Logs - Mentator LLM Service</title>
     <link rel="stylesheet" href="/static/css/common.css">
+    <style>
+        .logs-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 150px);
+        }
+
+        .logs-top-section {
+            height: 60px;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logs-middle-section {
+            flex: 1;
+            overflow-y: auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .logs-bottom-section {
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logs-bottom-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 0;
+        }
+
+        .log-main-line {
+            color: var(--f-main2);
+            line-height: 1.2;
+            padding: 2px 0;
+        }
+
+        .log-main-line.error {
+            color: var(--b-warn1);
+            font-weight: bold;
+            background-color: var(--b-warn2);
+        }
+
+        .log-extra-line {
+            margin-top: 0;
+            color: #666;
+            white-space: pre-wrap;
+            line-height: 1.2;
+            padding: 2px 0 2px 100px;
+        }
+
+        .log-extra-line.error {
+            background-color: var(--b-warn2);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--b-main1);
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .date-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .date-modal-window {
+            background-color: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .date-modal-title {
+            background-color: var(--b-main1);
+            color: var(--f-main1);
+            padding: 12px 24px;
+            margin: -24px -24px 16px -24px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .date-input-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .date-input-label {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            padding: 0 4px;
+            font-size: 11px;
+            color: #999;
+            z-index: 1;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .date-modal-input {
+            width: 100%;
+            height: 48px;
+            padding: 22px 12px 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: normal;
+            background-color: white;
+            color: var(--f-main2);
+            box-sizing: border-box;
+        }
+
+        .date-modal-input:focus {
+            outline: none;
+            border-color: var(--b-main1);
+        }
+
+        .date-modal-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -16,7 +182,72 @@
         </div>
 
         <div class="main-content">
-            <p>Эта страница пока не реализована.</p>
+            <div class="logs-container">
+                <!-- Top section -->
+                <div class="logs-top-section">
+                    <button class="form-button width-220" @click="onDownloadClick">download</button>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="follow" v-model="follow" />
+                        <label for="follow">follow</label>
+                    </div>
+                </div>
+
+                <!-- Middle section with logs -->
+                <div class="logs-middle-section" ref="logsContainer">
+                    <div v-if="logs.length === 0" style="color: #999; text-align: center; margin-top: 20px;">
+                        No logs yet...
+                    </div>
+                    <div v-for="log in displayLogs" :key="log.id" class="log-entry">
+                        <div class="log-main-line" :class="{ error: log.kind === 'error' }">
+                            [{{ formatTimestamp(log.ts) }}] [{{ log.kind }}] [{{ log.pipe }}] {{ log.message }}
+                        </div>
+                        <div v-if="log.extra && showExtra" class="log-extra-line" :class="{ error: log.kind === 'error' }">{{ log.extra }}</div>
+                    </div>
+                </div>
+
+                <!-- Bottom section -->
+                <div class="logs-bottom-section">
+                    <div style="display: flex; gap: 20px;">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="errors-only" v-model="errorsOnly" />
+                            <label for="errors-only">errors only</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-extra" v-model="showExtra" />
+                            <label for="show-extra">additional data (if exists)</label>
+                        </div>
+                    </div>
+                    <div class="logs-bottom-buttons">
+                        <button class="form-button width-220" :disabled="logs.length === 0" @click="onCopyCurrentClick">to clipboard current</button>
+                        <button class="form-button width-220" :disabled="logs.length === 0" @click="onSaveCurrentClick">to file current</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Modal -->
+        <div v-if="dateModalOpen" class="date-modal-backdrop" @click.self="onDateCancel" @keydown.esc="onDateCancel">
+            <div class="date-modal-window" role="dialog" aria-labelledby="date-modal-title" aria-modal="true">
+                <h2 id="date-modal-title" class="date-modal-title">Download Logs</h2>
+
+                <div class="date-input-group">
+                    <span class="date-input-label">logs date (yyyymmdd)</span>
+                    <input
+                        id="date-input"
+                        ref="dateInput"
+                        v-model="downloadDate"
+                        type="text"
+                        class="date-modal-input"
+                        maxlength="8"
+                        @keydown.enter="onDateOk"
+                    />
+                </div>
+
+                <div class="date-modal-controls">
+                    <button class="form-button width-120" @click="onDateOk">ok</button>
+                    <button class="form-button width-120 button-cancel" @click="onDateCancel">cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -27,10 +258,30 @@
         createApp({
             data() {
                 return {
-                    version: '0.0.0'
+                    version: '0.0.0',
+                    logs: [],
+                    follow: true,
+                    errorsOnly: false,
+                    showExtra: true,
+                    pollInterval: null,
+                    dateModalOpen: false,
+                    downloadDate: ''
+                }
+            },
+            computed: {
+                displayLogs() {
+                    // Filter by errors if needed
+                    let filtered = this.errorsOnly ? this.logs.filter(log => log.kind === 'error') : this.logs
+                    // Display in reverse order (Z->A by id)
+                    return [...filtered].reverse()
+                },
+                lastLogId() {
+                    if (this.logs.length === 0) return 0
+                    return Math.max(...this.logs.map(l => l.id))
                 }
             },
             mounted() {
+                // Load version
                 fetch('/api/version')
                     .then(res => res.json())
                     .then(data => {
@@ -39,6 +290,193 @@
                     .catch(err => {
                         console.error('Failed to load version:', err)
                     })
+
+                // Load initial logs
+                this.fetchLogs()
+
+                // Start polling
+                this.pollInterval = setInterval(() => {
+                    if (this.follow) {
+                        this.fetchLogs()
+                    }
+                }, 5000)
+
+                // Handle ESC key globally
+                document.addEventListener('keydown', this.handleEscKey)
+            },
+            beforeUnmount() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval)
+                }
+                document.removeEventListener('keydown', this.handleEscKey)
+            },
+            methods: {
+                formatTimestamp(ts) {
+                    const date = new Date(ts)
+                    return date.toISOString()
+                },
+                formatTimestampForFile() {
+                    const now = new Date()
+                    const year = now.getFullYear()
+                    const month = String(now.getMonth() + 1).padStart(2, '0')
+                    const day = String(now.getDate()).padStart(2, '0')
+                    const hours = String(now.getHours()).padStart(2, '0')
+                    const minutes = String(now.getMinutes()).padStart(2, '0')
+                    const seconds = String(now.getSeconds()).padStart(2, '0')
+                    return `${year}${month}${day}${hours}${minutes}${seconds}`
+                },
+                async fetchLogs() {
+                    try {
+                        const container = this.$refs.logsContainer
+
+                        // Check if user was at the bottom before update
+                        let wasAtBottom = false
+                        if (container) {
+                            const scrollThreshold = 50 // pixels from bottom
+                            wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold
+                        }
+
+                        const response = await fetch(`/api/corelogs?afterId=${this.lastLogId}&limit=200`)
+                        const data = await response.json()
+
+                        if (data.logs && data.logs.length > 0) {
+                            // Add new logs
+                            this.logs = [...this.logs, ...data.logs]
+
+                            // Keep only last 200 logs
+                            if (this.logs.length > 200) {
+                                // Sort by id to find oldest
+                                this.logs.sort((a, b) => a.id - b.id)
+                                // Remove oldest
+                                this.logs = this.logs.slice(-200)
+                            }
+
+                            // Auto-scroll to bottom only if follow is enabled AND user was at bottom
+                            if (this.follow && wasAtBottom) {
+                                this.$nextTick(() => {
+                                    if (container) {
+                                        container.scrollTop = container.scrollHeight
+                                    }
+                                })
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch logs:', err)
+                    }
+                },
+                formatLogForExport(log) {
+                    const timestampISO = this.formatTimestamp(log.ts)
+                    let line = `[${timestampISO}] [${log.kind}] [${log.pipe}] ${log.message}`
+
+                    if (log.extra && this.showExtra) {
+                        line += '\n' + log.extra.split('\n').map(l => `        ${l}`).join('\n')
+                    }
+
+                    return line
+                },
+                getCurrentLogsAsText() {
+                    // Filter by errors if needed
+                    let filtered = this.errorsOnly ? this.logs.filter(log => log.kind === 'error') : this.logs
+                    // Sort A->Z by id for export
+                    const sortedLogs = [...filtered].sort((a, b) => a.id - b.id)
+                    return sortedLogs.map(log => this.formatLogForExport(log)).join('\n')
+                },
+                onCopyCurrentClick() {
+                    const text = this.getCurrentLogsAsText()
+                    navigator.clipboard.writeText(text).then(() => {
+                        console.log('Copied logs to clipboard')
+                    }).catch(err => {
+                        console.error('Failed to copy to clipboard:', err)
+                    })
+                },
+                onSaveCurrentClick() {
+                    const text = this.getCurrentLogsAsText()
+                    const timestamp = this.formatTimestampForFile()
+                    const filename = `mentator-llm-service-corelogs-current-${timestamp}.txt`
+
+                    const blob = new Blob([text], { type: 'text/plain' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = filename
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
+                },
+                onDownloadClick() {
+                    // Set default date to today
+                    const now = new Date()
+                    const year = now.getFullYear()
+                    const month = String(now.getMonth() + 1).padStart(2, '0')
+                    const day = String(now.getDate()).padStart(2, '0')
+                    this.downloadDate = `${year}${month}${day}`
+
+                    this.dateModalOpen = true
+
+                    this.$nextTick(() => {
+                        if (this.$refs.dateInput) {
+                            this.$refs.dateInput.focus()
+                            this.$refs.dateInput.select()
+                        }
+                    })
+                },
+                async onDateOk() {
+                    const dateStr = this.downloadDate.trim()
+
+                    // Validate YYYYMMDD format
+                    if (!/^\d{8}$/.test(dateStr)) {
+                        alert('Invalid date format. Please use YYYYMMDD.')
+                        return
+                    }
+
+                    // Close modal immediately
+                    this.dateModalOpen = false
+
+                    try {
+                        const response = await fetch('/api/corelogs/download', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ date: dateStr }),
+                        })
+
+                        const files = await response.json()
+
+                        if (!files || files.length === 0) {
+                            alert('No logs found for this date')
+                            return
+                        }
+
+                        // Download each file
+                        for (const file of files) {
+                            const blob = new Blob([file.content], { type: 'text/plain' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = file.filename
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                            URL.revokeObjectURL(url)
+
+                            // Small delay between downloads
+                            await new Promise(resolve => setTimeout(resolve, 100))
+                        }
+                    } catch (err) {
+                        console.error('Failed to download logs:', err)
+                        alert('Failed to download logs: ' + err.message)
+                    }
+                },
+                onDateCancel() {
+                    this.dateModalOpen = false
+                },
+                handleEscKey(e) {
+                    if (e.key === 'Escape' && this.dateModalOpen) {
+                        this.onDateCancel()
+                    }
+                }
             }
         }).mount('#app')
     </script>

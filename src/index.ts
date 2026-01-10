@@ -4,6 +4,8 @@ import { resolve } from 'path'
 import { Go } from './go'
 import { VERSION } from '../package-version.js'
 
+//TODO в самом конце разработки сервиса убрать из логирования автозапросы страниц (логов, статистики)
+
 // Support both Bun and Node.js
 const argv = typeof Bun !== 'undefined' ? Bun.argv : process.argv
 const args = minimist(argv.slice(2))
