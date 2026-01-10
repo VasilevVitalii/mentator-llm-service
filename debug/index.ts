@@ -1,7 +1,5 @@
 import { Go } from "../src/go"
 
-console.log('hello, debug')
-
 Go({
     port: 8099,
     modelDir: '/home/vitalii/GGUF/',
@@ -24,7 +22,7 @@ Go({
         trimWhitespace: true,
     },
     log: {
-        level: 'debug',
+        level: 'trace',
         liveDay: 100,
         savePromt: true
     }

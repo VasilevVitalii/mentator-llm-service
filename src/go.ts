@@ -11,6 +11,10 @@ import { Log } from './log'
 import { ServerStats } from './serverStats'
 import { join } from 'path'
 
+// const ALLOW_LOG_API_PROMT = [
+// 	{method: 'POST', url: }
+// ]
+
 export async function Go(config: TConfig): Promise<void> {
 	let fastify: ReturnType<typeof Fastify> | undefined
 
@@ -24,6 +28,7 @@ export async function Go(config: TConfig): Promise<void> {
 		} else {
 			Log().debug('DB', `init db in "${config.dbFile}"`)
 		}
+		Log().debug('APP','START')
 		ModelManager.init(config.modelDir)
 		ModelManager().scanModelDirStart(60000)
 
@@ -39,22 +44,20 @@ export async function Go(config: TConfig): Promise<void> {
 							const req = parsed.req
 							const res = parsed.res
 
-							// Skip all logs for /promt, /api/checkformat and /api/checkoptions endpoints - they have custom logging
-							if (req && (req.url === '/promt' || req.url === '/api/checkformat' || req.url === '/api/checkoptions')) {
+							// if (req && (req.url === '/promt' || req.url === '/api/checkformat' || req.url === '/api/checkoptions')) {
+							// 	return
+							// }
+							// if (req && req.method === 'GET') {
+							// 	return
+							// }
+							// if (message.includes('request completed') || message.includes('Request completed')) {
+							// 	return
+							// }
+
+							if ((req || res) && level < 50) {
 								return
 							}
 
-							// Skip GET requests - they have custom logging via onResponse hook
-							if (req && req.method === 'GET') {
-								return
-							}
-
-							// Skip "request completed" messages
-							if (message.includes('request completed') || message.includes('Request completed')) {
-								return
-							}
-
-							// For non-GET requests, use standard logging
 							let logMessage = message
 							if (req) {
 								logMessage = `${req.method} ${req.url}`
@@ -64,14 +67,14 @@ export async function Go(config: TConfig): Promise<void> {
 							}
 
 							if (level >= 50) {
-								Log().error('FASTIFY', logMessage, parsed.err ? JSON.stringify(parsed.err, null, 2) : undefined)
+								Log().error('API', logMessage, parsed.err ? JSON.stringify(parsed.err, null, 2) : undefined)
 							} else if (level >= 30) {
-								Log().debug('FASTIFY', logMessage)
+								Log().debug('API', logMessage)
 							} else {
-								Log().trace('FASTIFY', logMessage)
+								Log().trace('API', logMessage)
 							}
 						} catch {
-							Log().trace('FASTIFY', msg.trim())
+							Log().trace('API', msg.trim())
 						}
 					},
 				},
@@ -87,7 +90,7 @@ export async function Go(config: TConfig): Promise<void> {
 				statusCode: error.statusCode,
 				validation: error.validation,
 			}
-			Log().error('FASTIFY', `Error handler for ${request.method} ${request.url}`, JSON.stringify(errorDetails, null, 2))
+			Log().error('API', `Error handler for ${request.method} ${request.url}`, JSON.stringify(errorDetails, null, 2))
 
 			// Return a safe error response that matches PromtResponseBadDto
 			const duration = {
@@ -131,13 +134,15 @@ export async function Go(config: TConfig): Promise<void> {
 			if (request.method === 'GET' && request.url !== '/promt') {
 				const statusCode = reply.statusCode
 				const url = request.url
-				const pipe = `GET.${statusCode}`
+				const ip = request.ip || request.socket.remoteAddress || 'unknown'
+				const pipe = `API.GET.${statusCode}`
+				const message = `[from ${ip}] ${url}`
 
 				// Success: 2xx and 304 (Not Modified)
 				if ((statusCode >= 200 && statusCode < 300) || statusCode === 304) {
-					Log().trace(pipe, url)
+					Log().trace(pipe, message)
 				} else {
-					Log().error(pipe, url)
+					Log().error(pipe, message)
 				}
 			}
 			done()
@@ -146,6 +151,10 @@ export async function Go(config: TConfig): Promise<void> {
 		for (const controller of controllers) {
 			await controller(fastify)
 		}
+
+		setInterval(() => {
+			Log().debug('APP', `memory (rss) ${ServerStats().getMemoryUsageMb()} mb; memory (heap) ${ServerStats().getMemoryHeapMb()} mb; memory (external) ${ServerStats().getMemoryExternalMb()} mb; queue size ${QueuePromt().getSize()}`)
+		}, 60000)
 
 		process.on('SIGTERM', async () => {
 			await finish(fastify)
@@ -163,6 +172,11 @@ export async function Go(config: TConfig): Promise<void> {
 }
 
 async function finish(fastify: ReturnType<typeof Fastify> | undefined): Promise<void> {
+	try {
+		Log().debug('APP','FINISH')
+	} catch {
+		console.log('FINISH')
+	}
 	if (fastify) {
 		try {
 			await fastify.close()
@@ -171,5 +185,4 @@ async function finish(fastify: ReturnType<typeof Fastify> | undefined): Promise<
 	try {
 		Db().close()
 	} catch {}
-	console.log('FINISH')
 }

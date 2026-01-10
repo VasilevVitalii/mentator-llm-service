@@ -4,7 +4,9 @@ import { Log } from '../../log'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post('/api/promtload', async (req, res) => {
-		const pipe = 'POST.PROMTLOAD.200'
+		const pipe = 'API.POST.PROMTLOAD.200'
+		const ip = req.ip || req.socket.remoteAddress || 'unknown'
+		const logMsg = (msg: string) => `[from ${ip}] ${msg}`
 
 		try {
 			const { content } = req.body as { content: string }
@@ -12,10 +14,10 @@ export async function controller(fastify: FastifyInstance) {
 
 			res.header('Content-Type', 'application/json')
 			res.send(JSON.stringify(promts))
-			Log().trace(pipe, req.url)
+			Log().trace(pipe, logMsg(req.url))
 		} catch (err: any) {
 			res.status(500).send({ error: err.message || 'Failed to parse promt' })
-			Log().error(pipe, req.url, err.message)
+			Log().error(pipe, logMsg(req.url), err.message)
 		}
 	})
 }

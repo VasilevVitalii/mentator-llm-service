@@ -20,7 +20,9 @@ export async function controller(fastify: FastifyInstance) {
 			},
 		},
 		async (req, res) => {
-			const pipe = 'POST.CHECKFORMAT.200'
+			const pipe = 'API.POST.CHECKFORMAT.200'
+			const ip = req.ip || req.socket.remoteAddress || 'unknown'
+			const logMsg = (msg: string) => `[from ${ip}] ${msg}`
 
 			try {
 				const { schema } = req.body
@@ -31,7 +33,7 @@ export async function controller(fastify: FastifyInstance) {
 					res.send({
 						error: `JSON Schema validation failed: ${schemaError}`,
 					})
-					Log().trace(pipe, req.url)
+					Log().trace(pipe, logMsg(req.url))
 					return
 				}
 
@@ -41,18 +43,18 @@ export async function controller(fastify: FastifyInstance) {
 					res.send({
 						error: `GBNF conversion failed: ${gbnfResult.error}`,
 					})
-					Log().trace(pipe, req.url)
+					Log().trace(pipe, logMsg(req.url))
 					return
 				}
 
 				// Both validations passed
 				res.send({ error: '' })
-				Log().trace(pipe, req.url)
+				Log().trace(pipe, logMsg(req.url))
 			} catch (err: any) {
 				res.send({
 					error: err.message || 'Failed to validate schema',
 				})
-				Log().trace(pipe, req.url)
+				Log().trace(pipe, logMsg(req.url))
 			}
 		},
 	)

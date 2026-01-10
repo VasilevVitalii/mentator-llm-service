@@ -20,9 +20,10 @@ const EXAMPLE_FORMAT = `{
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.get('/api/example/format', async (req, res) => {
-		const pipe = 'GET.EXAMPLE.FORMAT.200'
+		const pipe = 'API.GET.EXAMPLE.FORMAT.200'
+		const ip = req.ip || req.socket.remoteAddress || 'unknown'
 		res.header('Content-Type', 'application/json')
 		res.send(EXAMPLE_FORMAT)
-		Log().trace(pipe, req.url)
+		Log().trace(pipe, `[from ${ip}] ${req.url}`)
 	})
 }

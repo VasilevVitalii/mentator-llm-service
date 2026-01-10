@@ -43,7 +43,9 @@ export async function controller(fastify: FastifyInstance) {
 			},
 		},
 		async (req, res) => {
-			const pipe = 'POST.CHECKOPTIONS.200'
+			const pipe = 'API.POST.CHECKOPTIONS.200'
+			const ip = req.ip || req.socket.remoteAddress || 'unknown'
+			const logMsg = (msg: string) => `[from ${ip}] ${msg}`
 
 			try {
 				const { options: inputOptions } = req.body
@@ -55,7 +57,7 @@ export async function controller(fastify: FastifyInstance) {
 						error: 'Options must be a JSON object',
 					}
 					res.send(response)
-					Log().trace(pipe, req.url)
+					Log().trace(pipe, logMsg(req.url))
 					return
 				}
 
@@ -66,14 +68,14 @@ export async function controller(fastify: FastifyInstance) {
 				// Success: valid and complete options
 				const response = { options: validatedOptions, error: '' }
 				res.send(response)
-				Log().trace(pipe, req.url)
+				Log().trace(pipe, logMsg(req.url))
 			} catch (err: any) {
 				const response = {
 					options: DEFAULT_OPTIONS,
 					error: err.message || 'Failed to validate options',
 				}
 				res.send(response)
-				Log().trace(pipe, req.url)
+				Log().trace(pipe, logMsg(req.url))
 			}
 		},
 	)

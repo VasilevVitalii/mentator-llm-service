@@ -7,11 +7,13 @@ export async function saveHist(
 	response: any,
 	duration: { promtMsec: number; queueMsec: number },
 	allowSavePromtExtra: boolean,
+	ip?: string,
 ) {
 	const { requestKB, responseKB, ts } = await Db().editSavePromt(code, body, response, duration, allowSavePromtExtra)
-	const message = `queue=${duration.queueMsec}ms, promt=${duration.promtMsec}ms, request=${requestKB}KB, response=${responseKB}KB`
+	const ipPrefix = ip ? `[from ${ip}] ` : ''
+	const message = `${ipPrefix}queue=${duration.queueMsec}ms, promt=${duration.promtMsec}ms, request=${requestKB}KB, response=${responseKB}KB`
 	const extra = `Request:\n${JSON.stringify(body)}\n\nResponse:\n${JSON.stringify(response)}`
-	const pipe = `POST.PROMT.${code}`
+	const pipe = `API.POST.PROMT.${code}`
 
 	if (code === 200) {
 		Log().trace({ pipe, message, extra, ts })

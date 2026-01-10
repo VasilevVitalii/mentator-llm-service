@@ -12,6 +12,8 @@ export const StatDataResponseDto = Type.Object({
 		Type.Null(),
 	]),
 	memoryUsageMb: Type.Number(),
+	memoryHeapMb: Type.Number(),
+	memoryExternalMb: Type.Number(),
 	queueSize: Type.Number(),
 	stats1h: Type.Object({
 		total: Type.Number(),

@@ -4,7 +4,7 @@ import { singleton } from './util/singleton'
 import { ClassLogger } from './util/classLogger'
 import { basename, dirname, join } from 'path'
 
-const PIPE = 'MODEL_MANAGER'
+const PIPE = 'MANAGER.MODEL'
 
 export type TModelFile = {
 	relativeFileName: string

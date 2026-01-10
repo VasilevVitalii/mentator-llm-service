@@ -41,10 +41,12 @@
             justify-content: space-between;
             margin: 2px 0;
             font-size: 13px;
+            gap: 8px;
         }
         .stat-row-label {
             color: #666;
             text-transform: lowercase;
+            flex-shrink: 0;
         }
         .stat-row-value {
             font-weight: bold;
@@ -71,13 +73,19 @@
                 <!-- Server Info -->
                 <div class="stat-widget">
                     <h3>server info</h3>
-                    <div class="stat-row">
-                        <span class="stat-row-label">start time</span>
-                        <span class="stat-row-value">{{ serverStartTime }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">uptime</span>
-                        <span class="stat-row-value">{{ serverUptime }}</span>
+                    <div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">start time</span>
+                            <span class="stat-row-value">{{ serverStartTime }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">uptime</span>
+                            <span class="stat-row-value">{{ serverUptime }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">queue size</span>
+                            <span class="stat-row-value">{{ queueSize }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -104,76 +112,88 @@
                 <!-- System Resources -->
                 <div class="stat-widget">
                     <h3>system resources</h3>
-                    <div class="stat-row">
-                        <span class="stat-row-label">memory usage</span>
-                        <span class="stat-row-value">{{ memoryUsageMb }} mb</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">queue size</span>
-                        <span class="stat-row-value">{{ queueSize }}</span>
+                    <div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">process memory (RSS)</span>
+                            <span class="stat-row-value">{{ memoryUsageMb }} mb</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">process memory (heap)</span>
+                            <span class="stat-row-value">{{ memoryHeapMb }} mb</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">process memory (external)</span>
+                            <span class="stat-row-value">{{ memoryExternalMb }} mb</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Request Statistics - Last 1 hour -->
                 <div class="stat-widget" :class="{ 'stat-widget-warning': stats1h.failed > 0 }">
                     <h3>requests (last 1 hour)</h3>
-                    <div class="stat-row">
-                        <span class="stat-row-label">successful requests</span>
-                        <span class="stat-row-value">{{ stats1h.success }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">failed requests</span>
-                        <span class="stat-row-value">{{ stats1h.failed }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 execution time</span>
-                        <span class="stat-row-value">{{ stats1h.p95PromtDuration }} ms</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 queue wait</span>
-                        <span class="stat-row-value">{{ stats1h.p95QueueDuration }} ms</span>
+                    <div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">successful requests</span>
+                            <span class="stat-row-value">{{ stats1h.success }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">failed requests</span>
+                            <span class="stat-row-value">{{ stats1h.failed }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 execution time</span>
+                            <span class="stat-row-value">{{ stats1h.p95PromtDuration }} ms</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 queue wait</span>
+                            <span class="stat-row-value">{{ stats1h.p95QueueDuration }} ms</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Request Statistics - Last 3 hours -->
                 <div class="stat-widget" :class="{ 'stat-widget-warning': stats3h.failed > 0 }">
                     <h3>requests (last 3 hours)</h3>
-                    <div class="stat-row">
-                        <span class="stat-row-label">successful requests</span>
-                        <span class="stat-row-value">{{ stats3h.success }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">failed requests</span>
-                        <span class="stat-row-value">{{ stats3h.failed }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 execution time</span>
-                        <span class="stat-row-value">{{ stats3h.p95PromtDuration }} ms</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 queue wait</span>
-                        <span class="stat-row-value">{{ stats3h.p95QueueDuration }} ms</span>
+                    <div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">successful requests</span>
+                            <span class="stat-row-value">{{ stats3h.success }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">failed requests</span>
+                            <span class="stat-row-value">{{ stats3h.failed }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 execution time</span>
+                            <span class="stat-row-value">{{ stats3h.p95PromtDuration }} ms</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 queue wait</span>
+                            <span class="stat-row-value">{{ stats3h.p95QueueDuration }} ms</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Request Statistics - Last 24 hours -->
                 <div class="stat-widget" :class="{ 'stat-widget-warning': stats24h.failed > 0 }">
                     <h3>requests (last 24 hours)</h3>
-                    <div class="stat-row">
-                        <span class="stat-row-label">successful requests</span>
-                        <span class="stat-row-value">{{ stats24h.success }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">failed requests</span>
-                        <span class="stat-row-value">{{ stats24h.failed }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 execution time</span>
-                        <span class="stat-row-value">{{ stats24h.p95PromtDuration }} ms</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-row-label">p95 queue wait</span>
-                        <span class="stat-row-value">{{ stats24h.p95QueueDuration }} ms</span>
+                    <div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">successful requests</span>
+                            <span class="stat-row-value">{{ stats24h.success }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">failed requests</span>
+                            <span class="stat-row-value">{{ stats24h.failed }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 execution time</span>
+                            <span class="stat-row-value">{{ stats24h.p95PromtDuration }} ms</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">p95 queue wait</span>
+                            <span class="stat-row-value">{{ stats24h.p95QueueDuration }} ms</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -195,6 +215,8 @@
                     serverUptime: '',
                     currentModel: null,
                     memoryUsageMb: 0,
+                    memoryHeapMb: 0,
+                    memoryExternalMb: 0,
                     queueSize: 0,
                     stats1h: {
                         total: 0,
@@ -287,6 +309,8 @@
 
                             // System resources
                             this.memoryUsageMb = data.memoryUsageMb
+                            this.memoryHeapMb = data.memoryHeapMb
+                            this.memoryExternalMb = data.memoryExternalMb
                             this.queueSize = data.queueSize
 
                             // Statistics

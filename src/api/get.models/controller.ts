@@ -3,8 +3,6 @@ import { GetModelsResponseDto, type TGetModelsResponse } from './dto'
 import { ModelManager } from '../../modelManager'
 import { Log } from '../../log'
 
-const pipe = 'get.models'
-
 export async function controller(fastify: FastifyInstance) {
 	fastify.get<{
 		Reply: TGetModelsResponse
@@ -22,7 +20,6 @@ export async function controller(fastify: FastifyInstance) {
 		async (req, res) => {
 			const models = ModelManager().getModelList()
 			res.send({ models })
-			Log().trace(pipe, req.url)
 		},
 	)
 }

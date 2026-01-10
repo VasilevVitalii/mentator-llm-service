@@ -39,6 +39,16 @@ class ServerStatsClass {
 		const usage = process.memoryUsage()
 		return Math.ceil(usage.rss / 1024 / 1024)
 	}
+
+	getMemoryHeapMb(): number {
+		const usage = process.memoryUsage()
+		return Math.ceil(usage.heapUsed / 1024 / 1024)
+	}
+
+	getMemoryExternalMb(): number {
+		const usage = process.memoryUsage()
+		return Math.ceil(usage.external / 1024 / 1024)
+	}
 }
 
 export const ServerStats = singleton(ServerStatsClass)

@@ -40,6 +40,8 @@ export async function controller(fastify: FastifyInstance) {
 				serverUptimeSeconds: serverStats.getServerUptimeSeconds(),
 				currentModel: serverStats.getCurrentModel(),
 				memoryUsageMb: serverStats.getMemoryUsageMb(),
+				memoryHeapMb: serverStats.getMemoryHeapMb(),
+				memoryExternalMb: serverStats.getMemoryExternalMb(),
 				queueSize: queue.getSize(),
 				stats1h,
 				stats3h,

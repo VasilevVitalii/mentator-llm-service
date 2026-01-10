@@ -35,6 +35,7 @@ export async function controller(fastify: FastifyInstance) {
 			const body = req.body
 			const queue = QueuePromt()
 			const allowSavePromtExtra = fastify.appConfig.log.savePromt
+			const ip = req.ip || req.socket.remoteAddress || 'unknown'
 
 			try {
 				const llamaRes = await GetLama()
@@ -48,7 +49,7 @@ export async function controller(fastify: FastifyInstance) {
 						error: llamaRes.error,
 					}
 					res.code(llamaRes.errorCode).send(errResponse)
-					await saveHist(llamaRes.errorCode, body, errResponse, duration, allowSavePromtExtra)
+					await saveHist(llamaRes.errorCode, body, errResponse, duration, allowSavePromtExtra, ip)
 					return
 				}
 				const llama = llamaRes.result
@@ -77,7 +78,7 @@ export async function controller(fastify: FastifyInstance) {
 						duration,
 						error: generationParamsRes.error,
 					})
-					await saveHist(generationParamsRes.errorCode, body, { duration, error: generationParamsRes.error }, duration, allowSavePromtExtra)
+					await saveHist(generationParamsRes.errorCode, body, { duration, error: generationParamsRes.error }, duration, allowSavePromtExtra, ip)
 					return
 				}
 				const generationParams = generationParamsRes.result
@@ -102,7 +103,7 @@ export async function controller(fastify: FastifyInstance) {
 								duration,
 								error: contextRes.error,
 							})
-							await saveHist(contextRes.errorCode, body, { duration, error: contextRes.error }, duration, allowSavePromtExtra)
+							await saveHist(contextRes.errorCode, body, { duration, error: contextRes.error }, duration, allowSavePromtExtra, ip)
 							return
 						}
 						context = contextRes.result.context
@@ -118,7 +119,7 @@ export async function controller(fastify: FastifyInstance) {
 								duration,
 								error: sessionRes.error,
 							})
-							await saveHist(sessionRes.errorCode, body, { duration, error: sessionRes.error }, duration, allowSavePromtExtra)
+							await saveHist(sessionRes.errorCode, body, { duration, error: sessionRes.error }, duration, allowSavePromtExtra, ip)
 							return
 						}
 						session = sessionRes.result
@@ -135,7 +136,7 @@ export async function controller(fastify: FastifyInstance) {
 								duration,
 								error: responseRes.error,
 							})
-							await saveHist(responseRes.errorCode, body, { duration, error: responseRes.error }, duration, allowSavePromtExtra)
+							await saveHist(responseRes.errorCode, body, { duration, error: responseRes.error }, duration, allowSavePromtExtra, ip)
 							return
 						}
 						const responseJson = responseRes.result
@@ -152,7 +153,7 @@ export async function controller(fastify: FastifyInstance) {
 									duration,
 									error: responseValidationRes.error,
 								})
-								await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromtExtra)
+								await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromtExtra, ip)
 								return
 							}
 						}
@@ -168,7 +169,7 @@ export async function controller(fastify: FastifyInstance) {
 								data: responseJson,
 							},
 						})
-						await saveHist(200, body, { duration, result: { loadModelStatus, data: responseJson } }, duration, allowSavePromtExtra)
+						await saveHist(200, body, { duration, result: { loadModelStatus, data: responseJson } }, duration, allowSavePromtExtra, ip)
 					} catch (err) {
 						const duration = {
 							promtMsec: durationPromt.getMsec(),
@@ -179,7 +180,7 @@ export async function controller(fastify: FastifyInstance) {
 							duration,
 							error,
 						})
-						await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra)
+						await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
 					} finally {
 						if (session) {
 							session.dispose({ disposeSequence: true })
@@ -199,7 +200,7 @@ export async function controller(fastify: FastifyInstance) {
 					duration,
 					error,
 				})
-				await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra)
+				await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
 			}
 		},
 	)

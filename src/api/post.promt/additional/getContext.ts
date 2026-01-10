@@ -19,7 +19,7 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 				try {
 					await data.model.dispose()
 				} catch (err) {
-					Log().error('POST.PROMT', `error disposing old model "${data.modelInfo.name}": ${err}`)
+					Log().error('API.POST.PROMT', `error disposing old model "${data.modelInfo.name}": ${err}`)
 				}
 				data = undefined
 			}
@@ -34,7 +34,7 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 		}
 		const context = await data.model.createContext()
 		if (loadModelStatus === 'load') {
-			Log().debug('POST.PROMT', `in memory load model "${data.modelInfo.name}" (${Math.ceil(data.modelInfo.sizeKb / 1024)} mb)`)
+			Log().debug('APP', `load model to memory "${data.modelInfo.name}" (${Math.ceil(data.modelInfo.sizeKb / 1024)} mb)`)
 		}
 
 		return { ok: true, result: { context, loadModelStatus } }
