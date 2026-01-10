@@ -335,6 +335,104 @@ class DbClass {
 		})
 	}
 
+	async getChatLogs(afterId: number, limit: number): Promise<
+		Array<{
+			id: number
+			ts: number
+			code: number
+			durationPromtMsec: number
+			durationQueueMsec: number
+			request?: string
+			response?: string
+		}>
+	> {
+		if (this.error) return []
+
+		return await this._queue.add(async () => {
+			try {
+				const promtQuery = this._db!.prepare(`
+					SELECT id, ts, code, durationPromtMsec, durationQueueMsec
+					FROM promt
+					WHERE id > ?
+					ORDER BY id DESC
+					LIMIT ?
+				`)
+				const promts = promtQuery.all(afterId, limit) as Array<{
+					id: number
+					ts: number
+					code: number
+					durationPromtMsec: number
+					durationQueueMsec: number
+				}>
+
+				const extraQuery = this._db!.prepare('SELECT request, response FROM promtExtra WHERE id = ?')
+
+				return promts.map(promt => {
+					const extraRow = extraQuery.get(promt.id) as { request: string; response: string } | undefined
+					return {
+						...promt,
+						request: extraRow?.request,
+						response: extraRow?.response,
+					}
+				})
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on get chat logs: ${err}`)
+				return []
+			}
+		})
+	}
+
+	async getChatLogsByDateHour(
+		dateStart: number,
+		dateEnd: number,
+	): Promise<
+		Array<{
+			id: number
+			ts: number
+			code: number
+			durationPromtMsec: number
+			durationQueueMsec: number
+			request?: string
+			response?: string
+		}>
+	> {
+		if (this.error) return []
+
+		return await this._queue.add(async () => {
+			try {
+				const promtQuery = this._db!.prepare(`
+					SELECT id, ts, code, durationPromtMsec, durationQueueMsec
+					FROM promt
+					WHERE ts >= ? AND ts < ?
+					ORDER BY id ASC
+				`)
+				const promts = promtQuery.all(dateStart, dateEnd) as Array<{
+					id: number
+					ts: number
+					code: number
+					durationPromtMsec: number
+					durationQueueMsec: number
+				}>
+
+				const extraQuery = this._db!.prepare('SELECT request, response FROM promtExtra WHERE id = ?')
+
+				return promts.map(promt => {
+					const extraRow = extraQuery.get(promt.id) as { request: string; response: string } | undefined
+					return {
+						...promt,
+						request: extraRow?.request,
+						response: extraRow?.response,
+					}
+				})
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on get chat logs by date hour: ${err}`)
+				return []
+			}
+		})
+	}
+
 	close(): void {
 		if (this._db) {
 			this._db.close()

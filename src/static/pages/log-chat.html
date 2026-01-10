@@ -5,18 +5,243 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Logs - Mentator LLM Service</title>
     <link rel="stylesheet" href="/static/css/common.css">
+    <style>
+        .logs-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 150px);
+        }
+
+        .logs-top-section {
+            height: 60px;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logs-middle-section {
+            flex: 1;
+            overflow-y: auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .logs-bottom-section {
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logs-bottom-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 0;
+        }
+
+        .log-main-line {
+            color: var(--f-main2);
+            line-height: 1.2;
+            padding: 2px 0;
+        }
+
+        .log-main-line.error {
+            color: var(--b-warn1);
+            font-weight: bold;
+            background-color: var(--b-warn2);
+        }
+
+        .log-data-line {
+            margin-top: 0;
+            color: #666;
+            white-space: pre-wrap;
+            line-height: 1.2;
+            padding: 2px 0 2px 100px;
+            cursor: pointer;
+        }
+
+        .log-data-line:hover {
+            background-color: #f5f5f5;
+        }
+
+        .log-data-line.error {
+            background-color: var(--b-warn2);
+        }
+
+        .log-data-line.error:hover {
+            background-color: #f5dcc4;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--b-main1);
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .date-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .date-modal {
+            background-color: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 300px;
+        }
+
+        .date-modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: var(--f-main2);
+        }
+
+        .date-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .form-texteditor {
+            position: relative;
+        }
+
+        .form-texteditor-label {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 11px;
+            color: #999;
+            padding: 0 4px;
+            pointer-events: none;
+            background-color: white;
+        }
+
+        .form-texteditor input {
+            width: 100%;
+            padding: 22px 12px 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+        }
+
+        .form-texteditor input:focus {
+            outline: none;
+            border-color: var(--b-main1);
+        }
+    </style>
 </head>
 <body>
     <div id="app">
         <div class="banner">
             <div class="banner-title">
-                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+                <a href="/">Mentator LLM Service</a>
             </div>
-            <div class="banner-subtitle">chat logs</div>
+            <div class="banner-subtitle">Chat Logs Viewer (v{{ version }})</div>
         </div>
 
-        <div class="main-content">
-            <p>Эта страница пока не реализована.</p>
+        <div class="content-container">
+            <div class="logs-container">
+                <!-- Top section -->
+                <div class="logs-top-section">
+                    <button class="form-button width-220" @click="onDownloadClick">download</button>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="follow" v-model="follow" />
+                        <label for="follow">follow</label>
+                    </div>
+                </div>
+
+                <!-- Middle section (logs display) -->
+                <div class="logs-middle-section" ref="logsContainer">
+                    <div v-if="logs.length === 0" style="color: #999; text-align: center; margin-top: 20px;">
+                        No logs yet...
+                    </div>
+                    <div v-for="log in displayLogs" :key="log.id" class="log-entry">
+                        <div class="log-main-line" :class="{ error: log.code !== 200 }">
+                            [{{ formatTimestamp(log.ts) }}] [{{ log.code }}] duration promt {{ formatDuration(log.durationPromtMsec) }}; duration queue {{ formatDuration(log.durationQueueMsec) }}
+                        </div>
+                        <div v-if="log.request"
+                             class="log-data-line"
+                             :class="{ error: log.code !== 200 }"
+                             @click="toggleExpanded(log.id, 'request')">
+                            request
+{{ isExpanded(log.id, 'request') ? log.request : truncateText(log.request, 500) }}
+                        </div>
+                        <div v-if="log.response"
+                             class="log-data-line"
+                             :class="{ error: log.code !== 200 }"
+                             @click="toggleExpanded(log.id, 'response')">
+                            response
+{{ isExpanded(log.id, 'response') ? log.response : truncateText(log.response, 500) }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom section -->
+                <div class="logs-bottom-section">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="errors-only" v-model="errorsOnly" />
+                        <label for="errors-only">errors only</label>
+                    </div>
+                    <div class="logs-bottom-buttons">
+                        <button class="form-button width-220" :disabled="logs.length === 0" @click="onCopyCurrentClick">to clipboard current</button>
+                        <button class="form-button width-220" :disabled="logs.length === 0" @click="onSaveCurrentClick">to file current</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Modal -->
+        <div v-if="dateModalOpen" class="date-modal-backdrop" @click.self="dateModalOpen = false">
+            <div class="date-modal">
+                <div class="date-modal-title">Download logs by date and hour</div>
+                <div class="form-texteditor">
+                    <label class="form-texteditor-label">date hour (YYYYMMDD HH)</label>
+                    <input type="text" v-model="downloadDateHour" placeholder="20260110 15" @keyup.enter="onDownloadModalOk" />
+                </div>
+                <div class="date-modal-buttons">
+                    <button class="form-button" @click="dateModalOpen = false">cancel</button>
+                    <button class="form-button" @click="onDownloadModalOk">ok</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -27,18 +252,214 @@
         createApp({
             data() {
                 return {
-                    version: '0.0.0'
+                    version: '0.0.0',
+                    logs: [],
+                    follow: true,
+                    errorsOnly: false,
+                    expandedMap: {}, // { logId: { request: true/false, response: true/false } }
+                    pollInterval: null,
+                    dateModalOpen: false,
+                    downloadDateHour: ''
                 }
             },
-            mounted() {
-                fetch('/api/version')
-                    .then(res => res.json())
-                    .then(data => {
+            computed: {
+                displayLogs() {
+                    // Filter by errors if needed
+                    let filtered = this.errorsOnly ? this.logs.filter(log => log.code !== 200) : this.logs
+                    // Display in reverse order (Z->A by id)
+                    return [...filtered].reverse()
+                }
+            },
+            async mounted() {
+                await this.fetchVersion()
+                await this.fetchLogs()
+                this.pollInterval = setInterval(() => {
+                    this.fetchLogs()
+                }, 5000)
+            },
+            unmounted() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval)
+                }
+            },
+            methods: {
+                async fetchVersion() {
+                    try {
+                        const res = await fetch('/api/version')
+                        const data = await res.json()
                         this.version = data.version
-                    })
-                    .catch(err => {
-                        console.error('Failed to load version:', err)
-                    })
+                    } catch (err) {
+                        console.error('Failed to fetch version:', err)
+                    }
+                },
+                async fetchLogs() {
+                    try {
+                        const maxId = this.logs.length > 0 ? Math.max(...this.logs.map(l => l.id)) : 0
+                        const res = await fetch(`/api/chatlogs?afterId=${maxId}&limit=200`)
+                        const data = await res.json()
+
+                        if (data.logs && data.logs.length > 0) {
+                            this.logs.push(...data.logs)
+                            this.logs.sort((a, b) => a.id - b.id)
+
+                            // Keep only last 200
+                            if (this.logs.length > 200) {
+                                this.logs = this.logs.slice(-200)
+                            }
+
+                            await this.$nextTick()
+
+                            const container = this.$refs.logsContainer
+                            if (container) {
+                                // Check if user was at bottom before update
+                                let wasAtBottom = false
+                                const scrollThreshold = 50
+                                wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold
+
+                                // Only auto-scroll if follow enabled AND user was at bottom
+                                if (this.follow && wasAtBottom) {
+                                    container.scrollTop = container.scrollHeight
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch logs:', err)
+                    }
+                },
+                formatTimestamp(ts) {
+                    return new Date(ts).toISOString()
+                },
+                formatDuration(msec) {
+                    if (msec < 1000) {
+                        return `${msec}ms`
+                    }
+                    const sec = Math.floor(msec / 1000)
+                    const ms = msec % 1000
+                    if (sec < 60) {
+                        return `${sec}.${String(ms).padStart(3, '0')}s`
+                    }
+                    const min = Math.floor(sec / 60)
+                    const s = sec % 60
+                    const msPadded = String(ms).padStart(3, '0')
+                    return `${min}m ${s}.${msPadded}s`
+                },
+                truncateText(text, maxLength) {
+                    if (!text) return ''
+                    if (text.length <= maxLength) return text
+                    return text.substring(0, maxLength) + '...'
+                },
+                isExpanded(logId, field) {
+                    return this.expandedMap[logId] && this.expandedMap[logId][field]
+                },
+                toggleExpanded(logId, field) {
+                    if (!this.expandedMap[logId]) {
+                        this.expandedMap[logId] = {}
+                    }
+                    const currentValue = this.expandedMap[logId][field] || false
+                    this.expandedMap[logId][field] = !currentValue
+                    this.expandedMap = { ...this.expandedMap }
+                },
+                formatLogForExport(log) {
+                    const timestampISO = this.formatTimestamp(log.ts)
+                    const durationPromt = this.formatDuration(log.durationPromtMsec)
+                    const durationQueue = this.formatDuration(log.durationQueueMsec)
+
+                    let line = `[${timestampISO}] [${log.code}] duration promt ${durationPromt}; duration queue ${durationQueue}`
+
+                    if (log.request) {
+                        line += '\n' + log.request.split('\n').map(l => `        ${l}`).join('\n')
+                    }
+
+                    if (log.response) {
+                        line += '\n' + log.response.split('\n').map(l => `        ${l}`).join('\n')
+                    }
+
+                    return line
+                },
+                getCurrentLogsAsText() {
+                    // Filter by errors if needed
+                    let filtered = this.errorsOnly ? this.logs.filter(log => log.code !== 200) : this.logs
+                    // Sort A->Z by id for export
+                    const sorted = [...filtered].sort((a, b) => a.id - b.id)
+                    return sorted.map(log => this.formatLogForExport(log)).join('\n')
+                },
+                async onCopyCurrentClick() {
+                    try {
+                        const text = this.getCurrentLogsAsText()
+                        await navigator.clipboard.writeText(text)
+                        alert('Logs copied to clipboard')
+                    } catch (err) {
+                        console.error('Failed to copy logs:', err)
+                        alert('Failed to copy logs to clipboard')
+                    }
+                },
+                onSaveCurrentClick() {
+                    const text = this.getCurrentLogsAsText()
+                    const blob = new Blob([text], { type: 'text/plain' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `mentator-llm-service-chatlogs-current-${Date.now()}.txt`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
+                },
+                onDownloadClick() {
+                    this.dateModalOpen = true
+                    this.downloadDateHour = ''
+                },
+                async onDownloadModalOk() {
+                    const dateHourStr = this.downloadDateHour.trim()
+                    if (!dateHourStr || dateHourStr.length !== 11) {
+                        alert('Please enter date and hour in YYYYMMDD HH format (e.g., 20260110 15)')
+                        return
+                    }
+
+                    this.dateModalOpen = false
+
+                    try {
+                        const res = await fetch('/api/chatlogs/download', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ dateHour: dateHourStr })
+                        })
+
+                        if (!res.ok) {
+                            throw new Error(`HTTP error: ${res.status}`)
+                        }
+
+                        const files = await res.json()
+
+                        if (files.length === 0) {
+                            alert('No logs found for the specified date and hour')
+                            return
+                        }
+
+                        // Download all files
+                        for (const file of files) {
+                            const blob = new Blob([file.content], { type: 'text/plain' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = file.filename
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                            URL.revokeObjectURL(url)
+
+                            // Small delay between downloads
+                            await new Promise(resolve => setTimeout(resolve, 100))
+                        }
+
+                        alert(`Downloaded ${files.length} file(s)`)
+                    } catch (err) {
+                        console.error('Failed to download logs:', err)
+                        alert('Failed to download logs')
+                    }
+                }
             }
         }).mount('#app')
     </script>

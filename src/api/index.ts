@@ -13,6 +13,8 @@ import { controller as promtLoadController } from './post.promt.load/controller'
 import { controller as promtStoreController } from './post.promt.store/controller'
 import { controller as corelogsController } from './get.corelogs/controller'
 import { controller as corelogsDownloadController } from './post.corelogs.download/controller'
+import { controller as chatlogsController } from './get.chatlogs/controller'
+import { controller as chatlogsDownloadController } from './post.chatlogs.download/controller'
 
 export const controllers = [
 	pagesController,
@@ -29,4 +31,6 @@ export const controllers = [
 	promtStoreController,
 	corelogsController,
 	corelogsDownloadController,
+	chatlogsController,
+	chatlogsDownloadController,
 ] as Array<(fastify: FastifyInstance) => Promise<void>>
