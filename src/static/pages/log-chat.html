@@ -108,8 +108,8 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
@@ -117,55 +117,66 @@
             z-index: 1000;
         }
 
-        .date-modal {
+        .date-modal-window {
             background-color: white;
             border-radius: 8px;
             padding: 24px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 300px;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .date-modal-title {
-            font-size: 18px;
+            background-color: var(--b-main1);
+            color: var(--f-main1);
+            padding: 12px 24px;
+            margin: -24px -24px 16px -24px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 16px;
-            color: var(--f-main2);
+            text-transform: uppercase;
         }
 
-        .date-modal-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 16px;
-        }
-
-        .form-texteditor {
+        .date-input-group {
             position: relative;
+            margin-bottom: 16px;
         }
 
-        .form-texteditor-label {
+        .date-input-label {
             position: absolute;
             top: 4px;
             left: 4px;
+            padding: 0 4px;
             font-size: 11px;
             color: #999;
-            padding: 0 4px;
             pointer-events: none;
             background-color: white;
         }
 
-        .form-texteditor input {
+        .date-modal-input {
             width: 100%;
+            height: 48px;
             padding: 22px 12px 10px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-family: inherit;
             font-size: 14px;
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            line-height: normal;
+            background-color: white;
+            color: var(--f-main2);
+            box-sizing: border-box;
         }
 
-        .form-texteditor input:focus {
+        .date-modal-input:focus {
             outline: none;
             border-color: var(--b-main1);
+        }
+
+        .date-modal-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
         }
     </style>
 </head>
@@ -178,7 +189,7 @@
             <div class="banner-subtitle">Chat Logs Viewer (v{{ version }})</div>
         </div>
 
-        <div class="content-container">
+        <div class="main-content">
             <div class="logs-container">
                 <!-- Top section -->
                 <div class="logs-top-section">
@@ -230,16 +241,26 @@
         </div>
 
         <!-- Date Modal -->
-        <div v-if="dateModalOpen" class="date-modal-backdrop" @click.self="dateModalOpen = false">
-            <div class="date-modal">
-                <div class="date-modal-title">Download logs by date and hour</div>
-                <div class="form-texteditor">
-                    <label class="form-texteditor-label">date hour (YYYYMMDD HH)</label>
-                    <input type="text" v-model="downloadDateHour" placeholder="20260110 15" @keyup.enter="onDownloadModalOk" />
+        <div v-if="dateModalOpen" class="date-modal-backdrop" @click.self="onDateCancel" @keydown.esc="onDateCancel">
+            <div class="date-modal-window" role="dialog" aria-labelledby="date-modal-title" aria-modal="true">
+                <h2 id="date-modal-title" class="date-modal-title">Download Logs</h2>
+
+                <div class="date-input-group">
+                    <span class="date-input-label">date hour (yyyymmdd hh)</span>
+                    <input
+                        id="date-input"
+                        ref="dateInput"
+                        v-model="downloadDateHour"
+                        type="text"
+                        class="date-modal-input"
+                        maxlength="11"
+                        @keydown.enter="onDateOk"
+                    />
                 </div>
-                <div class="date-modal-buttons">
-                    <button class="form-button" @click="dateModalOpen = false">cancel</button>
-                    <button class="form-button" @click="onDownloadModalOk">ok</button>
+
+                <div class="date-modal-controls">
+                    <button class="form-button width-120" @click="onDateOk">ok</button>
+                    <button class="form-button width-120 button-cancel" @click="onDateCancel">cancel</button>
                 </div>
             </div>
         </div>
@@ -329,6 +350,16 @@
                 formatTimestamp(ts) {
                     return new Date(ts).toISOString()
                 },
+                formatTimestampForFile() {
+                    const now = new Date()
+                    const year = now.getFullYear()
+                    const month = String(now.getMonth() + 1).padStart(2, '0')
+                    const day = String(now.getDate()).padStart(2, '0')
+                    const hours = String(now.getHours()).padStart(2, '0')
+                    const minutes = String(now.getMinutes()).padStart(2, '0')
+                    const seconds = String(now.getSeconds()).padStart(2, '0')
+                    return `${year}${month}${day}${hours}${minutes}${seconds}`
+                },
                 formatDuration(msec) {
                     if (msec < 1000) {
                         return `${msec}ms`
@@ -387,7 +418,6 @@
                     try {
                         const text = this.getCurrentLogsAsText()
                         await navigator.clipboard.writeText(text)
-                        alert('Logs copied to clipboard')
                     } catch (err) {
                         console.error('Failed to copy logs:', err)
                         alert('Failed to copy logs to clipboard')
@@ -395,21 +425,42 @@
                 },
                 onSaveCurrentClick() {
                     const text = this.getCurrentLogsAsText()
+                    const timestamp = this.formatTimestampForFile()
                     const blob = new Blob([text], { type: 'text/plain' })
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
                     a.href = url
-                    a.download = `mentator-llm-service-chatlogs-current-${Date.now()}.txt`
+                    a.download = `mentator-llm-service-chatlogs-current-${timestamp}.txt`
                     document.body.appendChild(a)
                     a.click()
                     document.body.removeChild(a)
                     URL.revokeObjectURL(url)
                 },
                 onDownloadClick() {
+                    // Set default to current date and previous hour
+                    const now = new Date()
+                    const year = now.getFullYear()
+                    const month = String(now.getMonth() + 1).padStart(2, '0')
+                    const day = String(now.getDate()).padStart(2, '0')
+                    let hour = now.getHours() - 1
+                    if (hour < 0) {
+                        hour = 23
+                    }
+                    const hourStr = String(hour).padStart(2, '0')
+                    this.downloadDateHour = `${year}${month}${day} ${hourStr}`
                     this.dateModalOpen = true
-                    this.downloadDateHour = ''
+
+                    this.$nextTick(() => {
+                        if (this.$refs.dateInput) {
+                            this.$refs.dateInput.focus()
+                            this.$refs.dateInput.select()
+                        }
+                    })
                 },
-                async onDownloadModalOk() {
+                onDateCancel() {
+                    this.dateModalOpen = false
+                },
+                async onDateOk() {
                     const dateHourStr = this.downloadDateHour.trim()
                     if (!dateHourStr || dateHourStr.length !== 11) {
                         alert('Please enter date and hour in YYYYMMDD HH format (e.g., 20260110 15)')
