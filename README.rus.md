@@ -7,4 +7,4 @@
   </a>
 </div>
 
-[Русский](README.rus.md)
+[English](README.md)
