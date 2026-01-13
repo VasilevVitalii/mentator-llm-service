@@ -176,7 +176,7 @@
     <div id="app">
         <div class="banner">
             <div class="banner-title">
-                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+                <a href="/">MENTATOR-LLM-SERVICE, version {{ version }}</a>
             </div>
             <div class="banner-subtitle">core logs</div>
         </div>
@@ -282,7 +282,7 @@
             },
             mounted() {
                 // Load version
-                fetch('/api/version')
+                fetch('/state/version')
                     .then(res => res.json())
                     .then(data => {
                         this.version = data.version
@@ -313,7 +313,14 @@
             methods: {
                 formatTimestamp(ts) {
                     const date = new Date(ts)
-                    return date.toISOString()
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    const hours = String(date.getHours()).padStart(2, '0')
+                    const minutes = String(date.getMinutes()).padStart(2, '0')
+                    const seconds = String(date.getSeconds()).padStart(2, '0')
+                    const ms = String(date.getMilliseconds()).padStart(3, '0')
+                    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`
                 },
                 formatTimestampForFile() {
                     const now = new Date()
@@ -336,7 +343,7 @@
                             wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < scrollThreshold
                         }
 
-                        const response = await fetch(`/api/corelogs?afterId=${this.lastLogId}&limit=200`)
+                        const response = await fetch(`/log/core/byid?afterId=${this.lastLogId}&limit=200`)
                         const data = await response.json()
 
                         if (data.logs && data.logs.length > 0) {
@@ -434,12 +441,10 @@
                     this.dateModalOpen = false
 
                     try {
-                        const response = await fetch('/api/corelogs/download', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ date: dateStr }),
+                        // Send the date as-is without conversion
+                        // Server will interpret it in its local timezone
+                        const response = await fetch(`/log/core/bydate?date=${dateStr}`, {
+                            method: 'GET'
                         })
 
                         const files = await response.json()

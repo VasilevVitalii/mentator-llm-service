@@ -1,36 +1,40 @@
 import { type FastifyInstance } from 'fastify'
-import { controller as pagesController } from './get.pages/controller'
-import { controller as versionController } from './get.version/controller'
-import { controller as modelsController } from './get.models/controller'
-import { controller as promtController } from './post.promt/controller'
-import { controller as checkformatController } from './post.check.format/controller'
-import { controller as checkoptionsController } from './post.check.options/controller'
-import { controller as statdataController } from './get.statdata/controller'
-import { controller as exampleFormatController } from './get.example.format/controller'
-import { controller as exampleOptionsController } from './get.example.options/controller'
-import { controller as exampleOptionsJsonController } from './get.example.optionsjson/controller'
-import { controller as promtLoadController } from './post.promt.load/controller'
-import { controller as promtStoreController } from './post.promt.store/controller'
-import { controller as corelogsController } from './get.corelogs/controller'
-import { controller as corelogsDownloadController } from './post.corelogs.download/controller'
-import { controller as chatlogsController } from './get.chatlogs/controller'
-import { controller as chatlogsDownloadController } from './post.chatlogs.download/controller'
+
+import { controller as postPrompt } from './post/prompt/controller'
+import { controller as postHelperPromptFromstring } from './post/helper.prompt.fromstring/controller'
+import { controller as postHelperPromptTostring } from './post/helper.prompt.tostring/controller'
+import { controller as postCheckGbnf } from './post/check.gbnf/controller'
+import { controller as postCheckOptions } from './post/check.options/controller'
+import { controller as postCheckJsonresponse } from './post/check.jsonresponse/controller'
+
+import { controller as getUi } from './get/_ui/controller'
+import { controller as getState } from './get/state/controller'
+import { controller as getStateVersion } from './get/state.version/controller'
+import { controller as getStateModels } from './get/state.models/controller'
+import { controller as getLogCoreByid } from './get/log.core.byid/controller'
+import { controller as getLogCoreBydate } from './get/log.core.bydate/controller'
+import { controller as getLogChatByid } from './get/log.chat.byid/controller'
+import { controller as getLogChatBydate } from './get/log.chat.bydate/controller'
+import { controller as getHelperExampleJsonresponse } from './get/helper.example.jsonresponse/controller'
+import { controller as getHelperExampleOptions } from './get/helper.example.options/controller'
+import { controller as getHelperExampleOptionsJson } from './get/helper.example.optionsjson/controller'
 
 export const controllers = [
-	pagesController,
-	versionController,
-	modelsController,
-	promtController,
-	checkformatController,
-	checkoptionsController,
-	statdataController,
-	exampleFormatController,
-	exampleOptionsController,
-	exampleOptionsJsonController,
-	promtLoadController,
-	promtStoreController,
-	corelogsController,
-	corelogsDownloadController,
-	chatlogsController,
-	chatlogsDownloadController,
+	postPrompt,
+	postHelperPromptFromstring,
+	postHelperPromptTostring,
+	postCheckOptions,
+	postCheckJsonresponse,
+	postCheckGbnf,
+	getLogCoreByid,
+	getLogCoreBydate,
+	getLogChatByid,
+	getLogChatBydate,
+	getState,
+	getStateVersion,
+	getStateModels,
+	getHelperExampleJsonresponse,
+	getHelperExampleOptions,
+	getHelperExampleOptionsJson,
+	getUi,
 ] as Array<(fastify: FastifyInstance) => Promise<void>>

@@ -2,7 +2,7 @@ import { vvConfigJsonc, Type, type Static } from 'vv-config-jsonc'
 import { join } from 'path'
 import { fsWriteFileSync } from './util/fsWriteFile'
 import { readFileSync } from 'fs'
-import { SPromtOptionsJson } from 'vv-ai-promt-store'
+import { SPromptOptionsJson } from 'vv-ai-prompt-format'
 
 export const SConfig = Type.Object({
 	port: Type.Number({ description: 'Port where server worked', default: 8080, minimum: 1, maximum: 65535 }),
@@ -14,7 +14,7 @@ export const SConfig = Type.Object({
 		description: 'File name (with full path) to sqlite file with working data',
 		default: 'path/to/mentator-llm-service.db',
 	}),
-	defaultOptions: SPromtOptionsJson as any,
+	defaultOptions: SPromptOptionsJson as any,
 	log: Type.Object({
 		level: Type.Union([Type.Literal('error'), Type.Literal('debug'), Type.Literal('trace')], {
 			description: 'Logging level: error (only errors), debug (errors + debug), trace (all messages)',
@@ -26,8 +26,8 @@ export const SConfig = Type.Object({
 			minimum: 1,
 			maximum: 365,
 		}),
-		savePromt: Type.Boolean({
-			description: 'Save full request/response text for /promt endpoint in promtExtra table',
+		savePrompt: Type.Boolean({
+			description: 'Save full request/response text for /prompt endpoint in promtExtra table',
 			default: false,
 		}),
 	}),

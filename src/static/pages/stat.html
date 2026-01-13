@@ -63,7 +63,7 @@
     <div id="app">
         <div class="banner">
             <div class="banner-title">
-                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+                <a href="/">MENTATOR-LLM-SERVICE, version {{ version }}</a>
             </div>
             <div class="banner-subtitle">statistics</div>
         </div>
@@ -251,7 +251,7 @@
             },
             mounted() {
                 // Load version
-                fetch('/api/version')
+                fetch('/state/version')
                     .then(res => res.json())
                     .then(data => {
                         this.version = data.version
@@ -283,7 +283,7 @@
             },
             methods: {
                 loadStatistics() {
-                    fetch('/api/statdata')
+                    fetch('/state')
                         .then(res => {
                             if (!res.ok) {
                                 throw new Error(`HTTP error! status: ${res.status}`)

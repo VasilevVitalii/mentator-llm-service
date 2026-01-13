@@ -184,9 +184,9 @@
     <div id="app">
         <div class="banner">
             <div class="banner-title">
-                <a href="/">Mentator LLM Service</a>
+                <a href="/">MENTATOR-LLM-SERVICE, version {{ version }}</a>
             </div>
-            <div class="banner-subtitle">Chat Logs Viewer (v{{ version }})</div>
+            <div class="banner-subtitle">chat logs</div>
         </div>
 
         <div class="main-content">
@@ -306,7 +306,7 @@
             methods: {
                 async fetchVersion() {
                     try {
-                        const res = await fetch('/api/version')
+                        const res = await fetch('/state/version')
                         const data = await res.json()
                         this.version = data.version
                     } catch (err) {
@@ -316,7 +316,7 @@
                 async fetchLogs() {
                     try {
                         const maxId = this.logs.length > 0 ? Math.max(...this.logs.map(l => l.id)) : 0
-                        const res = await fetch(`/api/chatlogs?afterId=${maxId}&limit=200`)
+                        const res = await fetch(`/log/chat/byid?afterId=${maxId}&limit=200`)
                         const data = await res.json()
 
                         if (data.logs && data.logs.length > 0) {
@@ -348,7 +348,15 @@
                     }
                 },
                 formatTimestamp(ts) {
-                    return new Date(ts).toISOString()
+                    const date = new Date(ts)
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    const hours = String(date.getHours()).padStart(2, '0')
+                    const minutes = String(date.getMinutes()).padStart(2, '0')
+                    const seconds = String(date.getSeconds()).padStart(2, '0')
+                    const ms = String(date.getMilliseconds()).padStart(3, '0')
+                    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`
                 },
                 formatTimestampForFile() {
                     const now = new Date()
@@ -470,12 +478,13 @@
                     this.dateModalOpen = false
 
                     try {
-                        const res = await fetch('/api/chatlogs/download', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ dateHour: dateHourStr })
+                        // Split dateHourStr into date (YYYYMMDD) and hour (HH)
+                        // Send as-is without conversion - server will interpret in its local timezone
+                        const date = dateHourStr.substring(0, 8)
+                        const hour = dateHourStr.substring(9, 11)
+
+                        const res = await fetch(`/log/chat/bydate?date=${date}&hour=${hour}`, {
+                            method: 'GET'
                         })
 
                         if (!res.ok) {
@@ -504,8 +513,6 @@
                             // Small delay between downloads
                             await new Promise(resolve => setTimeout(resolve, 100))
                         }
-
-                        alert(`Downloaded ${files.length} file(s)`)
                     } catch (err) {
                         console.error('Failed to download logs:', err)
                         alert('Failed to download logs')

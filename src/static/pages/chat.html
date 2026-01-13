@@ -10,7 +10,7 @@
     <div id="app">
         <div class="banner">
             <div class="banner-title">
-                <a href="/">MENTATOR-LLM-SERVICE, VERSION {{ version }}</a>
+                <a href="/">MENTATOR-LLM-SERVICE, version {{ version }}</a>
             </div>
             <div class="banner-subtitle">chat</div>
         </div>
@@ -298,7 +298,7 @@
             },
             mounted() {
                 // Load version
-                fetch('/api/version')
+                fetch('/state/version')
                     .then(res => res.json())
                     .then(data => {
                         this.version = data.version
@@ -380,7 +380,7 @@
                 // Models
                 async loadModels() {
                     try {
-                        const response = await fetch('/api/models')
+                        const response = await fetch('/state/models')
                         const data = await response.json()
                         this.models = data.models || []
 
@@ -557,7 +557,7 @@
                     try {
                         const schema = JSON.parse(this.formatSchema)
 
-                        const response = await fetch('/api/checkformat', {
+                        const response = await fetch('/check/gbnf', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -585,7 +585,7 @@
                 },
                 async onFormatSetExample() {
                     try {
-                        const response = await fetch('/api/example/format')
+                        const response = await fetch('helper/example/jsonresponse')
                         const example = await response.text()
                         this.formatSchema = example
                         this.formatValidationState = null
@@ -643,7 +643,7 @@
                     try {
                         const options = JSON.parse(this.optionsJson)
 
-                        const response = await fetch('/api/checkoptions', {
+                        const response = await fetch('/check/options', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -671,7 +671,7 @@
                 },
                 async onOptionsSetExample() {
                     try {
-                        const response = await fetch('/api/example/options')
+                        const response = await fetch('helper/example/options')
                         const example = await response.text()
                         this.optionsJson = example
                         this.optionsValidationState = null
@@ -682,7 +682,7 @@
                 },
                 async onOptionsSetExampleForJson() {
                     try {
-                        const response = await fetch('/api/example/optionsjson')
+                        const response = await fetch('helper/example/optionsjson')
                         const example = await response.text()
                         this.optionsJson = example
                         this.optionsValidationState = null
@@ -715,7 +715,7 @@
                             const content = await file.text()
 
                             // Parse with PromtLoad via API
-                            const response = await fetch('/api/promtload', {
+                            const response = await fetch('/helper/prompt/fromstring', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ content })
@@ -854,7 +854,7 @@
                         }
 
                         // Serialize with PromtStore via API
-                        const response = await fetch('/api/promtstore', {
+                        const response = await fetch('/helper/prompt/tostring', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ promts: [promt] })
@@ -998,7 +998,7 @@
                         }
 
                         // Send request to API
-                        const response = await fetch('/promt', {
+                        const response = await fetch('/prompt', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

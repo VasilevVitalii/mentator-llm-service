@@ -44,7 +44,7 @@ export async function Go(config: TConfig): Promise<void> {
 							const req = parsed.req
 							const res = parsed.res
 
-							// if (req && (req.url === '/promt' || req.url === '/api/checkformat' || req.url === '/api/checkoptions')) {
+							// if (req && (req.url === '/prompt' || req.url === '/api/checkformat' || req.url === '/api/checkoptions')) {
 							// 	return
 							// }
 							// if (req && req.method === 'GET') {
@@ -125,13 +125,13 @@ export async function Go(config: TConfig): Promise<void> {
 		})
 
 		await fastify.register(fastifyStatic, {
-			root: join(__dirname, 'static'),
+			root: join(process.cwd(), 'src', 'static'),
 			prefix: '/static/',
 		})
 
 		// Custom logging for GET requests
 		fastify.addHook('onResponse', (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
-			if (request.method === 'GET' && request.url !== '/promt') {
+			if (request.method === 'GET' && request.url !== '/prompt') {
 				const statusCode = reply.statusCode
 				const url = request.url
 				const ip = request.ip || request.socket.remoteAddress || 'unknown'
