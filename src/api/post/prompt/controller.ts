@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify'
-import { PromptRequestDto, PromptResponseDto, type TPromptRequest, type TPromptResponse } from './dto'
-import { PromptResponseBadDto, type TPromptResponseBad } from '../../responseDto'
+import {
+	PostPromptRequestDto,
+	PostPromptResponseDto,
+	PostPromptResponseBadDto,
+	type TPostPromptRequest,
+	type TPostPromptResponse,
+	type TPostPromptResponseBad,
+} from './dto'
 import { GetContext } from './additional/getContext'
 import { GetLama } from './additional/getLama'
 import { getGenerationParams } from './additional/getGenerationParams'
@@ -11,26 +17,30 @@ import { GetResponseValidation } from './additional/getResponseValidation'
 import { QueuePromt } from '../../../queue'
 import { saveHist } from './additional/saveHist'
 import { PromptOptionsParse } from 'vv-ai-prompt-format'
+import { Log } from '../../../log'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
-		Body: TPromptRequest
-		Reply: TPromptResponse | TPromptResponseBad
+		Body: TPostPromptRequest
+		Reply: TPostPromptResponse | TPostPromptResponseBad
 	}>(
 		'/prompt',
 		{
 			schema: {
 				description: 'Process prompt and return JSON array',
 				tags: ['main'],
-				body: PromptRequestDto,
+				body: PostPromptRequestDto,
 				response: {
-					200: PromptResponseDto,
-					400: PromptResponseBadDto,
-					500: PromptResponseBadDto,
+					200: PostPromptResponseDto,
+					400: PostPromptResponseBadDto,
+					500: PostPromptResponseBadDto,
 				},
 			},
 		},
 		async (req, res) => {
+			const pipe = 'API.POST /prompt'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
+
 			const durationPromtAfterQueue = new Duration()
 			const body = req.body
 			const queue = QueuePromt()
@@ -169,6 +179,7 @@ export async function controller(fastify: FastifyInstance) {
 								data: responseJson,
 							},
 						})
+						Log().trace(pipe, log)
 						await saveHist(200, body, { duration, result: { loadModelStatus, data: responseJson } }, duration, allowSavePromtExtra, ip)
 					} catch (err) {
 						const duration = {
@@ -180,6 +191,7 @@ export async function controller(fastify: FastifyInstance) {
 							duration,
 							error,
 						})
+						Log().error(pipe, log, error)
 						await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
 					} finally {
 						if (session) {
@@ -200,6 +212,7 @@ export async function controller(fastify: FastifyInstance) {
 					duration,
 					error,
 				})
+				Log().error(pipe, log, error)
 				await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
 			}
 		},

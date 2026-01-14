@@ -1,6 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 
-export const StatDataResponseDto = Type.Object({
+// GET /state has no request parameters
+
+export const GetStateResponseDto = Type.Object({
 	serverStartTimestamp: Type.Number(),
 	serverUptimeSeconds: Type.Number(),
 	currentModel: Type.Union([
@@ -44,4 +46,9 @@ export const StatDataResponseDto = Type.Object({
 	}),
 })
 
-export type TStatDataResponse = Static<typeof StatDataResponseDto>
+export const GetStateResponseBadDto = Type.Object({
+	error: Type.String({ description: 'Error message' }),
+})
+
+export type TGetStateResponse = Static<typeof GetStateResponseDto>
+export type TGetStateResponseBad = Static<typeof GetStateResponseBadDto>

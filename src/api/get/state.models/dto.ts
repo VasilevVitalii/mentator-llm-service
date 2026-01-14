@@ -1,19 +1,20 @@
-import { Type } from '@sinclair/typebox'
+import { Type, type Static } from '@sinclair/typebox'
 
-export const ModelDto = Type.Object({
+// GET /state/models has no request parameters
+
+const ModelDto = Type.Object({
 	name: Type.String(),
 	relativeFileName: Type.String(),
 	sizeKb: Type.Number(),
 })
 
-export const GetModelsResponseDto = Type.Object({
+export const GetStateModelsResponseDto = Type.Object({
 	models: Type.Array(ModelDto),
 })
 
-export type TGetModelsResponse = {
-	models: Array<{
-		name: string
-		relativeFileName: string
-		sizeKb: number
-	}>
-}
+export const GetStateModelsResponseBadDto = Type.Object({
+	error: Type.String({ description: 'Error message' }),
+})
+
+export type TGetStateModelsResponse = Static<typeof GetStateModelsResponseDto>
+export type TGetStateModelsResponseBad = Static<typeof GetStateModelsResponseBadDto>

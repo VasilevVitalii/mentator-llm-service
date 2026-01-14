@@ -1,28 +1,35 @@
 import type { FastifyInstance } from 'fastify'
 import { ConvertJsonSchemaToGbnf, CheckJsonSchema } from 'vv-ai-prompt-format'
-import { CheckGbnfRequestDto, CheckGbnfResponseDto, type TCheckGbnfRequest, type TCheckGbnfResponse } from './dto'
+import {
+	PostCheckGbnfRequestDto,
+	PostCheckGbnfResponseDto,
+	PostCheckGbnfResponseBadDto,
+	type TPostCheckGbnfRequest,
+	type TPostCheckGbnfResponse,
+	type TPostCheckGbnfResponseBad,
+} from './dto'
 import { Log } from '../../../log'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
-		Body: TCheckGbnfRequest
-		Reply: TCheckGbnfResponse
+		Body: TPostCheckGbnfRequest
+		Reply: TPostCheckGbnfResponse | TPostCheckGbnfResponseBad
 	}>(
 		'/check/gbnf',
 		{
 			schema: {
 				description: 'Validate JSON Schema and convert to GBNF',
 				tags: ['validation'],
-				body: CheckGbnfRequestDto,
+				body: PostCheckGbnfRequestDto,
 				response: {
-					200: CheckGbnfResponseDto,
+					200: PostCheckGbnfResponseDto,
+					500: PostCheckGbnfResponseBadDto,
 				},
 			},
 		},
 		async (req, res) => {
-			const pipe = 'API.POST.CHECK.GBNF.200'
-			const ip = req.ip || req.socket.remoteAddress || 'unknown'
-			const logMsg = (msg: string) => `[from ${ip}] ${msg}`
+			const pipe = 'API.POST /check/gbnf'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
 			try {
 				const { schema } = req.body
@@ -33,7 +40,7 @@ export async function controller(fastify: FastifyInstance) {
 					res.send({
 						error: `JSON Schema validation failed: ${schemaError}`,
 					})
-					Log().trace(pipe, logMsg(req.url))
+					Log().trace(pipe, log)
 					return
 				}
 
@@ -43,18 +50,17 @@ export async function controller(fastify: FastifyInstance) {
 					res.send({
 						error: `GBNF conversion failed: ${gbnfResult.error}`,
 					})
-					Log().trace(pipe, logMsg(req.url))
+					Log().trace(pipe, log)
 					return
 				}
 
 				// Both validations passed
 				res.send({ error: '' })
-				Log().trace(pipe, logMsg(req.url))
+				Log().trace(pipe, log)
 			} catch (err: any) {
-				res.send({
-					error: err.message || 'Failed to validate schema',
-				})
-				Log().trace(pipe, logMsg(req.url))
+				const error = err.message || 'Failed to validate schema'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
 			}
 		},
 	)

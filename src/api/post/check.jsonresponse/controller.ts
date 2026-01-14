@@ -1,28 +1,35 @@
 import type { FastifyInstance } from 'fastify'
 import { CheckJsonSchema } from 'vv-ai-prompt-format'
-import { CheckJsonResponseRequestDto, CheckJsonResponseResponseDto, type TCheckJsonResponseRequest, type TCheckJsonResponseResponse } from './dto'
+import {
+	PostCheckJsonresponseRequestDto,
+	PostCheckJsonresponseResponseDto,
+	PostCheckJsonresponseResponseBadDto,
+	type TPostCheckJsonresponseRequest,
+	type TPostCheckJsonresponseResponse,
+	type TPostCheckJsonresponseResponseBad,
+} from './dto'
 import { Log } from '../../../log'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
-		Body: TCheckJsonResponseRequest
-		Reply: TCheckJsonResponseResponse
+		Body: TPostCheckJsonresponseRequest
+		Reply: TPostCheckJsonresponseResponse | TPostCheckJsonresponseResponseBad
 	}>(
 		'/check/jsonresponse',
 		{
 			schema: {
 				description: 'Validate JSON Schema only (without GBNF conversion)',
 				tags: ['validation'],
-				body: CheckJsonResponseRequestDto,
+				body: PostCheckJsonresponseRequestDto,
 				response: {
-					200: CheckJsonResponseResponseDto,
+					200: PostCheckJsonresponseResponseDto,
+					500: PostCheckJsonresponseResponseBadDto,
 				},
 			},
 		},
 		async (req, res) => {
-			const pipe = 'API.POST.CHECK.JSONRESPONSE.200'
-			const ip = req.ip || req.socket.remoteAddress || 'unknown'
-			const logMsg = (msg: string) => `[from ${ip}] ${msg}`
+			const pipe = 'API.POST /check/jsonresponse'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
 			try {
 				const { schema } = req.body
@@ -33,18 +40,17 @@ export async function controller(fastify: FastifyInstance) {
 					res.send({
 						error: `JSON Schema validation failed: ${schemaError}`,
 					})
-					Log().trace(pipe, logMsg(req.url))
+					Log().trace(pipe, log)
 					return
 				}
 
 				// Validation passed
 				res.send({ error: '' })
-				Log().trace(pipe, logMsg(req.url))
+				Log().trace(pipe, log)
 			} catch (err: any) {
-				res.send({
-					error: err.message || 'Failed to validate schema',
-				})
-				Log().trace(pipe, logMsg(req.url))
+				const error = err.message || 'Failed to validate schema'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
 			}
 		},
 	)

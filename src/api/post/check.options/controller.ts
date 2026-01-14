@@ -1,6 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { PromptOptionsParse } from 'vv-ai-prompt-format'
-import { CheckOptionsRequestDto, CheckOptionsResponseDto, type TCheckOptionsRequest, type TCheckOptionsResponse } from './dto'
+import {
+	PostCheckOptionsRequestDto,
+	PostCheckOptionsResponseDto,
+	PostCheckOptionsResponseBadDto,
+	type TPostCheckOptionsRequest,
+	type TPostCheckOptionsResponse,
+	type TPostCheckOptionsResponseBad,
+} from './dto'
 import { Log } from '../../../log'
 
 const DEFAULT_OPTIONS = {
@@ -28,24 +35,24 @@ const DEFAULT_OPTIONS = {
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
-		Body: TCheckOptionsRequest
-		Reply: TCheckOptionsResponse
+		Body: TPostCheckOptionsRequest
+		Reply: TPostCheckOptionsResponse | TPostCheckOptionsResponseBad
 	}>(
 		'/check/options',
 		{
 			schema: {
 				description: 'Validate and complete LLM generation options',
 				tags: ['validation'],
-				body: CheckOptionsRequestDto,
+				body: PostCheckOptionsRequestDto,
 				response: {
-					200: CheckOptionsResponseDto,
+					200: PostCheckOptionsResponseDto,
+					500: PostCheckOptionsResponseBadDto,
 				},
 			},
 		},
 		async (req, res) => {
-			const pipe = 'API.POST.CHECK.OPTIONS.200'
-			const ip = req.ip || req.socket.remoteAddress || 'unknown'
-			const logMsg = (msg: string) => `[from ${ip}] ${msg}`
+			const pipe = 'API.POST /check/options'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
 			try {
 				const { options: inputOptions } = req.body
@@ -57,7 +64,7 @@ export async function controller(fastify: FastifyInstance) {
 						error: 'Options must be a JSON object',
 					}
 					res.send(response)
-					Log().trace(pipe, logMsg(req.url))
+					Log().trace(pipe, log)
 					return
 				}
 
@@ -68,14 +75,11 @@ export async function controller(fastify: FastifyInstance) {
 				// Success: valid and complete options
 				const response = { options: validatedOptions, error: '' }
 				res.send(response)
-				Log().trace(pipe, logMsg(req.url))
+				Log().trace(pipe, log)
 			} catch (err: any) {
-				const response = {
-					options: DEFAULT_OPTIONS,
-					error: err.message || 'Failed to validate options',
-				}
-				res.send(response)
-				Log().trace(pipe, logMsg(req.url))
+				const error = err.message || 'Failed to validate options'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
 			}
 		},
 	)

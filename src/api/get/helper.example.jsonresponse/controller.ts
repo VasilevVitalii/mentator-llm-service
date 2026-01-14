@@ -1,4 +1,10 @@
 import type { FastifyInstance } from 'fastify'
+import {
+	GetHelperExampleJsonresponseResponseDto,
+	GetHelperExampleJsonresponseResponseBadDto,
+	type TGetHelperExampleJsonresponseResponse,
+	type TGetHelperExampleJsonresponseResponseBad,
+} from './dto'
 import { Log } from '../../../log'
 
 const EXAMPLE_FORMAT = `{
@@ -19,20 +25,32 @@ const EXAMPLE_FORMAT = `{
 }`
 
 export async function controller(fastify: FastifyInstance) {
-	fastify.get(
+	fastify.get<{
+		Reply: TGetHelperExampleJsonresponseResponse | TGetHelperExampleJsonresponseResponseBad
+	}>(
 		'/helper/example/jsonresponse',
 		{
 			schema: {
 				description: 'Get example response format (JSON schema format)',
 				tags: ['helper'],
+				response: {
+					200: GetHelperExampleJsonresponseResponseDto,
+					500: GetHelperExampleJsonresponseResponseBadDto,
+				},
 			},
 		},
 		async (req, res) => {
-			const pipe = 'API.GET.EXAMPLE.FORMAT.200'
-			const ip = req.ip || req.socket.remoteAddress || 'unknown'
-			res.header('Content-Type', 'application/json')
-			res.send(EXAMPLE_FORMAT)
-			Log().trace(pipe, `[from ${ip}] ${req.url}`)
+			const pipe = 'API.GET /helper/example/jsonresponse'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
+
+			try {
+				res.send({ schema: EXAMPLE_FORMAT })
+				Log().trace(pipe, log)
+			} catch (err: any) {
+				const error = err.message || 'Failed to get example JSON response format'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
+			}
 		},
 	)
 }

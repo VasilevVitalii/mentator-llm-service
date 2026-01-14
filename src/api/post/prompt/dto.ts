@@ -1,7 +1,8 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { SPromptOptions } from 'vv-ai-prompt-format'
 
-export const PromptRequestDto = Type.Object({
+// POST /prompt request parameters
+export const PostPromptRequestDto = Type.Object({
 	model: Type.String({ description: 'Model name (file name without .gguf extension)' }),
 	message: Type.Object({
 		system: Type.Optional(Type.String({ description: 'System prompt' })),
@@ -22,7 +23,7 @@ export const PromptRequestDto = Type.Object({
 	),
 })
 
-export const PromptResponseDto = Type.Object({
+export const PostPromptResponseDto = Type.Object({
 	duration: Type.Object({
 		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
 		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
@@ -35,5 +36,14 @@ export const PromptResponseDto = Type.Object({
 	}),
 })
 
-export type TPromptRequest = Static<typeof PromptRequestDto>
-export type TPromptResponse = Static<typeof PromptResponseDto>
+export const PostPromptResponseBadDto = Type.Object({
+	duration: Type.Object({
+		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
+		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
+	}),
+	error: Type.String({ description: 'Error message' }),
+})
+
+export type TPostPromptRequest = Static<typeof PostPromptRequestDto>
+export type TPostPromptResponse = Static<typeof PostPromptResponseDto>
+export type TPostPromptResponseBad = Static<typeof PostPromptResponseBadDto>

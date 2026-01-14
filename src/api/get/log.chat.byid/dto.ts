@@ -1,37 +1,29 @@
-import { Type } from '@sinclair/typebox'
+import { Type, type Static } from '@sinclair/typebox'
 
-export const ChatLogsQueryDto = Type.Object({
-	afterId: Type.Optional(Type.String()),
-	limit: Type.Optional(Type.String()),
+// GET /log/chat/byid request parameters (query string)
+export const GetLogChatByidRequestDto = Type.Object({
+	afterId: Type.Optional(Type.String({ description: 'Get logs after this ID' })),
+	limit: Type.Optional(Type.String({ description: 'Max number of logs to return (max 200)' })),
 })
 
-export type TChatLogsQuery = {
-	afterId?: string
-	limit?: string
-}
-
-export const ChatLogsResponseDto = Type.Object({
-	logs: Type.Array(
-		Type.Object({
-			id: Type.Number(),
-			ts: Type.Number(),
-			code: Type.Number(),
-			durationPromtMsec: Type.Number(),
-			durationQueueMsec: Type.Number(),
-			request: Type.Optional(Type.String()),
-			response: Type.Optional(Type.String()),
-		}),
-	),
+const ChatLogDto = Type.Object({
+	id: Type.Number(),
+	ts: Type.Number(),
+	code: Type.Number(),
+	durationPromtMsec: Type.Number(),
+	durationQueueMsec: Type.Number(),
+	request: Type.Optional(Type.String()),
+	response: Type.Optional(Type.String()),
 })
 
-export type TChatLogsResponse = {
-	logs: Array<{
-		id: number
-		ts: number
-		code: number
-		durationPromtMsec: number
-		durationQueueMsec: number
-		request?: string
-		response?: string
-	}>
-}
+export const GetLogChatByidResponseDto = Type.Object({
+	logs: Type.Array(ChatLogDto),
+})
+
+export const GetLogChatByidResponseBadDto = Type.Object({
+	error: Type.String({ description: 'Error message' }),
+})
+
+export type TGetLogChatByidRequest = Static<typeof GetLogChatByidRequestDto>
+export type TGetLogChatByidResponse = Static<typeof GetLogChatByidResponseDto>
+export type TGetLogChatByidResponseBad = Static<typeof GetLogChatByidResponseBadDto>

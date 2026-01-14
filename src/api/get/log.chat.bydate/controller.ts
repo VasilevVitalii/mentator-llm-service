@@ -1,6 +1,14 @@
 import type { FastifyInstance } from 'fastify'
-import { ChatLogsByDateQueryDto, type TChatLogsByDateQuery } from './dto'
+import {
+	GetLogChatBydateRequestDto,
+	GetLogChatBydateResponseDto,
+	GetLogChatBydateResponseBadDto,
+	type TGetLogChatBydateRequest,
+	type TGetLogChatBydateResponse,
+	type TGetLogChatBydateResponseBad,
+} from './dto'
 import { Db } from '../../../db'
+import { Log } from '../../../log'
 
 function formatDuration(msec: number): string {
 	if (msec < 1000) {
@@ -79,53 +87,67 @@ function splitLogsIntoFiles(logs: Array<any>, maxSizeBytes: number): Array<{ con
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.get<{
-		Querystring: TChatLogsByDateQuery
-		Reply: Array<{ filename: string; content: string }>
+		Querystring: TGetLogChatBydateRequest
+		Reply: TGetLogChatBydateResponse | TGetLogChatBydateResponseBad
 	}>(
 		'/log/chat/bydate',
 		{
 			schema: {
 				description: 'Download chat logs for specified date and optional hour',
 				tags: ['log'],
-				querystring: ChatLogsByDateQueryDto,
+				querystring: GetLogChatBydateRequestDto,
+				response: {
+					200: GetLogChatBydateResponseDto,
+					500: GetLogChatBydateResponseBadDto,
+				},
 			},
 		},
 		async (req, res) => {
-			const db = Db()
-			const dateStr = req.query.date
-			const hourStr = req.query.hour
+			const pipe = 'API.GET /log/chat/bydate'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
-			// Parse YYYYMMDD format
-			const year = parseInt(dateStr.substring(0, 4), 10)
-			const month = parseInt(dateStr.substring(4, 6), 10) - 1
-			const day = parseInt(dateStr.substring(6, 8), 10)
+			try {
+				const db = Db()
+				const dateStr = req.query.date
+				const hourStr = req.query.hour
 
-			let dateStart: number
-			let dateEnd: number
+				// Parse YYYYMMDD format
+				const year = parseInt(dateStr.substring(0, 4), 10)
+				const month = parseInt(dateStr.substring(4, 6), 10) - 1
+				const day = parseInt(dateStr.substring(6, 8), 10)
 
-			if (hourStr) {
-				// Filter by specific hour in local server timezone
-				const hour = parseInt(hourStr, 10)
-				dateStart = new Date(year, month, day, hour, 0, 0, 0).getTime()
-				dateEnd = new Date(year, month, day, hour + 1, 0, 0, 0).getTime()
-			} else {
-				// Filter by entire day in local server timezone
-				dateStart = new Date(year, month, day, 0, 0, 0, 0).getTime()
-				dateEnd = new Date(year, month, day + 1, 0, 0, 0, 0).getTime()
+				let dateStart: number
+				let dateEnd: number
+
+				if (hourStr) {
+					// Filter by specific hour in local server timezone
+					const hour = parseInt(hourStr, 10)
+					dateStart = new Date(year, month, day, hour, 0, 0, 0).getTime()
+					dateEnd = new Date(year, month, day, hour + 1, 0, 0, 0).getTime()
+				} else {
+					// Filter by entire day in local server timezone
+					dateStart = new Date(year, month, day, 0, 0, 0, 0).getTime()
+					dateEnd = new Date(year, month, day + 1, 0, 0, 0, 0).getTime()
+				}
+
+				const logs = await db.getChatLogsByDateHour(dateStart, dateEnd)
+
+				const maxSizeBytes = 1024 * 1024 // 1 MB
+				const files = splitLogsIntoFiles(logs, maxSizeBytes)
+
+				const hourSuffix = hourStr ? `-${hourStr}` : ''
+				const response = files.map(file => ({
+					filename: `mentator-llm-service-chatlogs-${dateStr}${hourSuffix}-${String(file.fileNumber).padStart(5, '0')}.txt`,
+					content: file.content,
+				}))
+
+				res.send(response)
+				Log().trace(pipe, log)
+			} catch (err: any) {
+				const error = err.message || 'Failed to download chat logs'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
 			}
-
-			const logs = await db.getChatLogsByDateHour(dateStart, dateEnd)
-
-			const maxSizeBytes = 1024 * 1024 // 1 MB
-			const files = splitLogsIntoFiles(logs, maxSizeBytes)
-
-			const hourSuffix = hourStr ? `-${hourStr}` : ''
-			const response = files.map(file => ({
-				filename: `mentator-llm-service-chatlogs-${dateStr}${hourSuffix}-${String(file.fileNumber).padStart(5, '0')}.txt`,
-				content: file.content,
-			}))
-
-			res.code(200).send(response)
 		},
 	)
 }

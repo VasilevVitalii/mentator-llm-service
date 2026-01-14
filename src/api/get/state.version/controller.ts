@@ -1,34 +1,49 @@
 import type { FastifyInstance } from 'fastify'
-import { Type } from '@sinclair/typebox'
+import {
+	GetStateVersionResponseDto,
+	GetStateVersionResponseBadDto,
+	type TGetStateVersionResponse,
+	type TGetStateVersionResponseBad,
+} from './dto'
 import { fsReadFile } from '../../../util/fsReadFile'
 import { join } from 'path'
-
-const VersionResponseDto = Type.Object({
-	version: Type.String(),
-})
+import { Log } from '../../../log'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.get<{
-		Reply: { version: string }
-	}>('/state/version', {
-		schema: {
-			description: 'Get service version from package.json',
-			tags: ['state'],
-			response: {
-				200: VersionResponseDto,
+		Reply: TGetStateVersionResponse | TGetStateVersionResponseBad
+	}>(
+		'/state/version',
+		{
+			schema: {
+				description: 'Get service version from package.json',
+				tags: ['state'],
+				response: {
+					200: GetStateVersionResponseDto,
+					500: GetStateVersionResponseBadDto,
+				},
 			},
 		},
-	}, async (req, res) => {
-		// Читаем версию из package.json
-		const pkgPath = join(process.cwd(), 'package.json')
-		const result = await fsReadFile(pkgPath)
+		async (req, res) => {
+			const pipe = 'API.GET /state/version'
+			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
-		if (!result.ok || !result.result) {
-			res.code(500).send({ version: 'unknown' })
-			return
-		}
+			try {
+				const pkgPath = join(process.cwd(), 'package.json')
+				const result = await fsReadFile(pkgPath)
 
-		const pkg = JSON.parse(result.result)
-		res.send({ version: pkg.version })
-	})
+				if (!result.ok || !result.result) {
+					throw new Error('Failed to read package.json')
+				}
+
+				const pkg = JSON.parse(result.result)
+				res.send({ version: pkg.version })
+				//Log().trace(pipe, log)
+			} catch (err: any) {
+				const error = err.message || 'Failed to get service version'
+				res.code(500).send({ error })
+				Log().error(pipe, log, error)
+			}
+		},
+	)
 }

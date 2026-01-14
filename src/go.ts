@@ -33,52 +33,7 @@ export async function Go(config: TConfig): Promise<void> {
 		ModelManager().scanModelDirStart(60000)
 
 		fastify = Fastify({
-			logger: {
-				level: 'info',
-				stream: {
-					write: (msg: string) => {
-						try {
-							const parsed = JSON.parse(msg)
-							const level = parsed.level
-							const message = parsed.msg || ''
-							const req = parsed.req
-							const res = parsed.res
-
-							// if (req && (req.url === '/prompt' || req.url === '/api/checkformat' || req.url === '/api/checkoptions')) {
-							// 	return
-							// }
-							// if (req && req.method === 'GET') {
-							// 	return
-							// }
-							// if (message.includes('request completed') || message.includes('Request completed')) {
-							// 	return
-							// }
-
-							if ((req || res) && level < 50) {
-								return
-							}
-
-							let logMessage = message
-							if (req) {
-								logMessage = `${req.method} ${req.url}`
-							}
-							if (res) {
-								logMessage += ` - ${res.statusCode}`
-							}
-
-							if (level >= 50) {
-								Log().error('API', logMessage, parsed.err ? JSON.stringify(parsed.err, null, 2) : undefined)
-							} else if (level >= 30) {
-								Log().debug('API', logMessage)
-							} else {
-								Log().trace('API', logMessage)
-							}
-						} catch {
-							Log().trace('API', msg.trim())
-						}
-					},
-				},
-			},
+			logger: false,
 		})
 		fastify.decorate('appConfig', config)
 
@@ -127,25 +82,6 @@ export async function Go(config: TConfig): Promise<void> {
 		await fastify.register(fastifyStatic, {
 			root: join(process.cwd(), 'src', 'static'),
 			prefix: '/static/',
-		})
-
-		// Custom logging for GET requests
-		fastify.addHook('onResponse', (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
-			if (request.method === 'GET' && request.url !== '/prompt') {
-				const statusCode = reply.statusCode
-				const url = request.url
-				const ip = request.ip || request.socket.remoteAddress || 'unknown'
-				const pipe = `API.GET.${statusCode}`
-				const message = `[from ${ip}] ${url}`
-
-				// Success: 2xx and 304 (Not Modified)
-				if ((statusCode >= 200 && statusCode < 300) || statusCode === 304) {
-					Log().trace(pipe, message)
-				} else {
-					Log().error(pipe, message)
-				}
-			}
-			done()
 		})
 
 		for (const controller of controllers) {
