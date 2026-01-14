@@ -478,3 +478,108 @@ body {
     color: var(--f-main2);
     line-height: 1.5;
 }
+
+/* Service description styles */
+.service-description {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.service-description h2 {
+    color: var(--b-main1);
+    font-size: 28px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--b-main1);
+    padding-bottom: 8px;
+}
+
+.service-description h3 {
+    color: var(--b-main1);
+    font-size: 20px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.service-description h4 {
+    color: var(--b-main1);
+    font-size: 18px;
+    margin-top: 16px;
+    margin-bottom: 12px;
+}
+
+.service-description p {
+    line-height: 1.6;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.service-description ul {
+    margin-left: 24px;
+    margin-bottom: 16px;
+}
+
+.service-description li {
+    line-height: 1.8;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.service-description a {
+    color: var(--b-main1);
+    text-decoration: none;
+}
+
+.service-description a:hover {
+    text-decoration: underline;
+}
+
+.service-description code {
+    background-color: var(--b-main2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.service-description pre {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+}
+
+.example-story {
+    background-color: #fffacd;
+    border-left: 4px solid #ffd700;
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 4px;
+    font-style: italic;
+    line-height: 1.6;
+}
+
+.example-section {
+    background-color: var(--b-main2);
+    border: 1px solid var(--b-main1);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.example-section ol {
+    margin-left: 24px;
+    margin-top: 12px;
+}
+
+.example-section ol li {
+    margin-bottom: 12px;
+}

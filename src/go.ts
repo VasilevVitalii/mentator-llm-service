@@ -102,6 +102,7 @@ export async function Go(config: TConfig): Promise<void> {
 		})
 
 		await fastify.listen({ port: config.port, host: '0.0.0.0' })
+		Log().debug('APP',	`LISTEN http://127.0.0.1:${config.port}/`)
 	} catch (error) {
 		console.error(`${error}`)
 	}

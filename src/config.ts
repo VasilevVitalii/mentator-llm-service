@@ -5,7 +5,7 @@ import { readFileSync } from 'fs'
 import { SPromptOptionsJson } from 'vv-ai-prompt-format'
 
 export const SConfig = Type.Object({
-	port: Type.Number({ description: 'Port where server worked', default: 8080, minimum: 1, maximum: 65535 }),
+	port: Type.Number({ description: 'Port where server worked', default: 19777, minimum: 1, maximum: 65535 }),
 	modelDir: Type.String({
 		description: 'Full path to directory with model gguf files',
 		default: 'path/to/models',

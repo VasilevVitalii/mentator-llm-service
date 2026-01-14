@@ -16,6 +16,7 @@
         </div>
 
         <div class="main-content">
+            <!-- Service Pages Cards -->
             <div class="card-container">
                 <a href="/doc" class="card">
                     <div class="card-title">documentation API</div>
@@ -51,6 +52,108 @@
                         View request and response logs
                     </div>
                 </a>
+            </div>
+
+            <!-- Service Description -->
+            <div class="service-description">
+                <h2>About Mentator LLM Service</h2>
+                <p>
+                    Mentator LLM Service is a specialized local LLM inference service that <strong>guarantees JSON-formatted responses</strong>
+                    using grammar-guided generation (GBNF). Built on top of llama.cpp, it enables you to extract structured data
+                    from unstructured text with type-safe, schema-validated outputs.
+                </p>
+
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>Guaranteed JSON Schema compliance</strong> - responses always match your defined structure</li>
+                    <li><strong>Local inference</strong> - full privacy and control over your data</li>
+                    <li><strong>GGUF model support</strong> - use quantized models for efficient processing</li>
+                    <li><strong>Simple API</strong> - easy integration with REST endpoints</li>
+                </ul>
+
+                <h3>Getting Started</h3>
+                <p>
+                    <strong>Download Models:</strong> You need to download GGUF models manually.
+                    For example, you can start with
+                    <a href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf"
+                       target="_blank" rel="noopener">Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf</a>
+                    from <a href="https://huggingface.co/models?library=gguf" target="_blank" rel="noopener">Hugging Face</a>.
+                    Place downloaded .gguf files in your configured models directory.
+                </p>
+
+                <h3>Usage Examples</h3>
+                <p>Let's extract structured data from a story about people:</p>
+
+                <div class="example-story">
+                    <strong>Story:</strong><br>
+                    I am Bob, I am 9 years old and I live on Sunny Street. My friend Diana lives across from me, she is 8 years old
+                    and does gymnastics. A little further away lives my friend John, he is a year older than me. We like to play tennis
+                    with him. We ask Mr. Smith to judge our game. He is a former tennis referee. And although he is already 92 years old,
+                    he still loves his former job and is happy to help us.
+                </div>
+
+                <div class="example-section">
+                    <h4>Example 1: Using the Chat Interface</h4>
+                    <ol>
+                        <li>Go to the <a href="/chat">/chat</a> page</li>
+                        <li>Select your model from the dropdown</li>
+                        <li>Paste the story above into the "User Prompt" field</li>
+                        <li>Add the following text to the beginning of the field <em>"Get all people (name, age, etc.) from this text:"</em></li>
+                        <li>Click button "FORMAT" -> enable "use grammar" and paste:
+<pre>{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "integer" },
+      "sex": { "type": "string", "enum": ["male", "female"] },
+      "hobby": { "type": "string" }
+    },
+    "required": ["name", "age", "sex"]
+  }
+}</pre>
+                        </li>
+                        <li>Close modal window (button "OK")</li>
+                        <li>Click button "OPTIONS" -> click button "SET EXAMPLE FOR JSON" -> close modal window (button "OK")</li>
+                        <li>Click "Send" and receive a <strong>guaranteed valid JSON array</strong> of people!</li>
+                    </ol>
+                </div>
+
+                <div class="example-section">
+                    <h4>Example 2: Using the API (POST /prompt)</h4>
+                    <p>Send a POST request to <code>/prompt</code>:</p>
+<pre>curl -X POST http://127.0.0.1:19777/prompt \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
+    "message": {
+      "user": "Get all people (name, age, etc.) from this text: I am Bob, I am 9 years old and I live on Sunny Street. My friend Diana lives across from me, she is 8 years old and does gymnastics. A little further away lives my friend John, he is a year older than me. We like to play tennis with him. We ask Mr. Smith to judge our game. He is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us."
+    },
+    "durationMsec": 30000,
+    "format": {
+      "useGrammar": true,
+      "jsonSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "age": { "type": "integer" },
+            "sex": { "type": "string", "enum": ["male", "female"] },
+            "hobby": { "type": "string" }
+          },
+          "required": ["name", "age", "sex"]
+        }
+      }
+    }
+  }'
+</pre>
+                    <p>
+                        The response will contain <code>result.data</code> with a <strong>validated JSON array</strong>
+                        matching your schema - no parsing errors, no invalid formats!
+                    </p>
+                </div>
             </div>
         </div>
     </div>

@@ -1,7 +1,7 @@
 import { Go } from "../src/go"
 
 Go({
-    port: 8099,
+    port: 19777,
     modelDir: '/home/vitalii/GGUF/',
     dbFile: '/home/vitalii/Work/mentator/mentator-llm-service/debug/testdata/mentator-llm-service.db',
     defaultOptions: {
