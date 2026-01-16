@@ -243,7 +243,7 @@
                     messageSystem: '',
                     responseValidationState: null, // null, 'valid', or 'invalid'
                     loadedFileName: null, // Name of loaded file
-                    loadedFileHadSinglePromt: false, // Was there only one promt in loaded file
+                    loadedFileHadSinglePrompt: false, // Was there only one prompt in loaded file
                     topHeight: 0,
                     bottomHeight: 0,
                     isDragging: false,
@@ -704,7 +704,7 @@
                     // Create file input element
                     const input = document.createElement('input')
                     input.type = 'file'
-                    input.accept = '.txt,.promt'
+                    input.accept = '.txt,.prompt'
 
                     input.onchange = async (e) => {
                         const file = e.target.files[0]
@@ -714,25 +714,25 @@
                             // Read file content
                             const content = await file.text()
 
-                            // Parse with PromtLoad via API
+                            // Parse with PromptLoad via API
                             const response = await fetch('/helper/prompt/fromstring', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ content })
                             })
-                            const promts = await response.json()
+                            const prompts = await response.json()
 
-                            if (!promts || promts.length === 0) {
+                            if (!prompts || prompts.length === 0) {
                                 alert('No prompts found in file')
                                 return
                             }
 
-                            // Use first promt
-                            const promt = promts[0]
+                            // Use first prompt
+                            const prompt = prompts[0]
 
                             // Load messages
-                            this.messageUser = promt.user || ''
-                            this.messageSystem = promt.system || ''
+                            this.messageUser = prompt.user || ''
+                            this.messageSystem = prompt.system || ''
 
                             // Save messages to localStorage
                             localStorage.setItem('message.user', this.messageUser)
@@ -740,8 +740,8 @@
 
                             // Load options from options field (or clear if not present)
                             try {
-                                if (promt.options) {
-                                    localStorage.setItem('options', JSON.stringify(promt.options, null, 2))
+                                if (prompt.options) {
+                                    localStorage.setItem('options', JSON.stringify(prompt.options, null, 2))
                                 } else {
                                     localStorage.setItem('options', '')
                                 }
@@ -750,8 +750,8 @@
                             }
 
                             // Load model from segment.model (if found in models list)
-                            if (promt.segment && promt.segment.model) {
-                                const modelName = promt.segment.model.trim()
+                            if (prompt.segment && prompt.segment.model) {
+                                const modelName = prompt.segment.model.trim()
                                 if (this.models.some(m => m.name === modelName)) {
                                     this.selectedModel = modelName
                                 } else {
@@ -764,9 +764,9 @@
                             let loadedUseGrammar = true
 
                             // Load jsonresponse from prompt
-                            if (promt.jsonresponse) {
+                            if (prompt.jsonresponse) {
                                 try {
-                                    loadedSchema = promt.jsonresponse
+                                    loadedSchema = prompt.jsonresponse
                                     loadedUseGrammar = true
                                 } catch (err) {
                                     console.error('Failed to load jsonresponse from prompt:', err)
@@ -774,9 +774,9 @@
                             }
 
                             // Load useGrammar from mentator-llm-service segment (overrides default)
-                            if (promt.segment && promt.segment['mentator-llm-service']) {
+                            if (prompt.segment && prompt.segment['mentator-llm-service']) {
                                 try {
-                                    const serviceConfig = JSON.parse(promt.segment['mentator-llm-service'])
+                                    const serviceConfig = JSON.parse(prompt.segment['mentator-llm-service'])
                                     if (typeof serviceConfig.useGrammar === 'boolean') {
                                         loadedUseGrammar = serviceConfig.useGrammar
                                     }
@@ -796,11 +796,11 @@
 
                             // Track loaded file
                             this.loadedFileName = file.name
-                            this.loadedFileHadSinglePromt = promts.length === 1
+                            this.loadedFileHadSinglePrompt = prompts.length === 1
 
-                            console.log('Promt loaded successfully from', file.name)
+                            console.log('Prompt loaded successfully from', file.name)
                         } catch (err) {
-                            alert('Failed to load promt: ' + err.message)
+                            alert('Failed to load prompt: ' + err.message)
                             console.error('Load error:', err)
                         }
                     }
@@ -809,8 +809,8 @@
                 },
                 async onSaveClick() {
                     try {
-                        // Create promt object
-                        const promt = {
+                        // Create prompt object
+                        const prompt = {
                             user: this.messageUser,
                             system: this.messageSystem || undefined,
                             segment: {},
@@ -821,7 +821,7 @@
                         try {
                             const savedOptions = localStorage.getItem('options')
                             if (savedOptions) {
-                                promt.options = JSON.parse(savedOptions)
+                                prompt.options = JSON.parse(savedOptions)
                             }
                         } catch (err) {
                             console.error('Failed to load options for saving:', err)
@@ -829,7 +829,7 @@
 
                         // Add model segment if exists
                         if (this.selectedModel) {
-                            promt.segment.model = this.selectedModel
+                            prompt.segment.model = this.selectedModel
                         }
 
                         // Add mentator-llm-service segment with useGrammar
@@ -837,7 +837,7 @@
                             const serviceConfig = {
                                 useGrammar: this.formatUseGrammar
                             }
-                            promt.segment['mentator-llm-service'] = JSON.stringify(serviceConfig)
+                            prompt.segment['mentator-llm-service'] = JSON.stringify(serviceConfig)
                         } catch (err) {
                             console.error('Failed to add mentator-llm-service segment:', err)
                         }
@@ -847,29 +847,29 @@
                             try {
                                 // Validate that it's valid JSON
                                 JSON.parse(this.formatSchema)
-                                promt.jsonresponse = this.formatSchema
+                                prompt.jsonresponse = this.formatSchema
                             } catch (err) {
                                 console.error('Failed to add jsonresponse to prompt (invalid JSON):', err)
                             }
                         }
 
-                        // Serialize with PromtStore via API
+                        // Serialize with PromptStore via API
                         const response = await fetch('/helper/prompt/tostring', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ promts: [promt] })
+                            body: JSON.stringify({ prompts: [prompt] })
                         })
                         const content = await response.text()
 
                         // Determine filename
                         let filename
-                        if (this.loadedFileName && this.loadedFileHadSinglePromt) {
+                        if (this.loadedFileName && this.loadedFileHadSinglePrompt) {
                             // Reuse loaded filename
                             filename = this.loadedFileName
                         } else {
                             // Generate new filename with timestamp
                             const timestamp = this.formatTimestamp(new Date())
-                            filename = `promt-${timestamp}.txt`
+                            filename = `prompt-${timestamp}.txt`
                         }
 
                         // Download file
@@ -883,9 +883,9 @@
                         document.body.removeChild(a)
                         URL.revokeObjectURL(url)
 
-                        console.log('Promt saved to', filename)
+                        console.log('Prompt saved to', filename)
                     } catch (err) {
-                        alert('Failed to save promt: ' + err.message)
+                        alert('Failed to save prompt: ' + err.message)
                         console.error('Save error:', err)
                     }
                 },
@@ -920,7 +920,7 @@
 
                         // Clear loaded file tracking
                         this.loadedFileName = null
-                        this.loadedFileHadSinglePromt = false
+                        this.loadedFileHadSinglePrompt = false
 
                         console.log('All data cleared')
                     })
@@ -1014,11 +1014,11 @@
 
                         // Handle response - show entire response object
                         if (response.ok && result.result && result.result.data !== undefined) {
-                            // Success - show full PromtResponseDto
+                            // Success - show full PromptResponseDto
                             this.response = JSON.stringify(result, null, 2)
                             this.responseValidationState = 'valid'
                         } else {
-                            // Error - show full PromtResponseBadDto
+                            // Error - show full PromptResponseBadDto
                             this.response = JSON.stringify(result, null, 2)
                             this.responseValidationState = 'invalid'
                         }

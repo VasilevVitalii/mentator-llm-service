@@ -19,7 +19,7 @@ export async function GetContext(llama: Llama, name: string): Promise<TResultCod
 				try {
 					await data.model.dispose()
 				} catch (err) {
-					Log().error('API.POST.PROMT', `error disposing old model "${data.modelInfo.name}": ${err}`)
+					Log().error('API.POST.PROMPT', `error disposing old model "${data.modelInfo.name}": ${err}`)
 				}
 				data = undefined
 			}

@@ -43,22 +43,22 @@ class DbClass {
 			`)
 
 			this._db.run(`
-				CREATE TABLE IF NOT EXISTS promt (
+				CREATE TABLE IF NOT EXISTS prompt (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					ts INTEGER NOT NULL,
-					durationPromtMsec INTEGER NOT NULL,
+					durationPromptMsec INTEGER NOT NULL,
 					durationQueueMsec INTEGER NOT NULL,
 					code INTEGER NOT NULL
 				)
 			`)
-			this._db.run(`CREATE INDEX IF NOT EXISTS idx_promt_ts ON promt(ts)`)
+			this._db.run(`CREATE INDEX IF NOT EXISTS idx_prompt_ts ON prompt(ts)`)
 
 			this._db.run(`
-				CREATE TABLE IF NOT EXISTS promtExtra (
+				CREATE TABLE IF NOT EXISTS promptExtra (
 					id INTEGER PRIMARY KEY,
 					request TEXT NOT NULL,
 					response TEXT NOT NULL,
-					FOREIGN KEY (id) REFERENCES promt(id)
+					FOREIGN KEY (id) REFERENCES prompt(id)
 				)
 			`)
 		} catch (err) {
@@ -66,11 +66,11 @@ class DbClass {
 		}
 	}
 
-	async editSavePromt(
+	async editSavePrompt(
 		code: number,
 		request: any,
 		response: any,
-		duration: { promtMsec: number; queueMsec: number },
+		duration: { promptMsec: number; queueMsec: number },
 		saveExtra: boolean,
 	): Promise<{ requestKB: string; responseKB: string; ts: number }> {
 		const ts = Date.now()
@@ -85,18 +85,18 @@ class DbClass {
 		await this._queue.add(async () => {
 			try {
 				const query1 = this._db!.prepare(
-					'INSERT INTO promt (ts, durationPromtMsec, durationQueueMsec, code) VALUES (?, ?, ?, ?)',
+					'INSERT INTO prompt (ts, durationPromptMsec, durationQueueMsec, code) VALUES (?, ?, ?, ?)',
 				)
-				const result = query1.run(ts, duration.promtMsec, duration.queueMsec, code)
-				const promtId = result.lastInsertRowid
+				const result = query1.run(ts, duration.promptMsec, duration.queueMsec, code)
+				const promptId = result.lastInsertRowid
 
 				if (saveExtra) {
-					const query2 = this._db!.prepare('INSERT INTO promtExtra (id, request, response) VALUES (?, ?, ?)')
-					query2.run(promtId, requestText, responseText)
+					const query2 = this._db!.prepare('INSERT INTO promptExtra (id, request, response) VALUES (?, ?, ?)')
+					query2.run(promptId, requestText, responseText)
 				}
 			} catch (err) {
 				this.error = `${err}`
-				Log().error(PIPE, `database error on save promt: ${err}`)
+				Log().error(PIPE, `database error on save prompt: ${err}`)
 			}
 		})
 
@@ -151,9 +151,9 @@ class DbClass {
 		total: number
 		success: number
 		failed: number
-		avgPromtDuration: number
+		avgPromptDuration: number
 		avgQueueDuration: number
-		p95PromtDuration: number
+		p95PromptDuration: number
 		p95QueueDuration: number
 	}> {
 		const cutoffTimestamp = Date.now() - intervalMsec
@@ -163,9 +163,9 @@ class DbClass {
 				total: 0,
 				success: 0,
 				failed: 0,
-				avgPromtDuration: 0,
+				avgPromptDuration: 0,
 				avgQueueDuration: 0,
-				p95PromtDuration: 0,
+				p95PromptDuration: 0,
 				p95QueueDuration: 0,
 			}
 		}
@@ -178,9 +178,9 @@ class DbClass {
 						COUNT(*) as total,
 						COUNT(CASE WHEN code = 200 THEN 1 END) as success,
 						COUNT(CASE WHEN code != 200 THEN 1 END) as failed,
-						AVG(CASE WHEN code = 200 THEN durationPromtMsec END) as avgPromtDuration,
+						AVG(CASE WHEN code = 200 THEN durationPromptMsec END) as avgPromptDuration,
 						AVG(durationQueueMsec) as avgQueueDuration
-					FROM promt
+					FROM prompt
 					WHERE ts >= ?
 				`)
 				const stats = statsQuery.get(cutoffTimestamp) as any
@@ -188,33 +188,33 @@ class DbClass {
 				// Get all durations for percentile calculation
 				const durationsQuery = this._db!.prepare(`
 					SELECT
-						durationPromtMsec,
+						durationPromptMsec,
 						durationQueueMsec,
 						code
-					FROM promt
+					FROM prompt
 					WHERE ts >= ?
-					ORDER BY durationPromtMsec
+					ORDER BY durationPromptMsec
 				`)
 				const allDurations = durationsQuery.all(cutoffTimestamp) as Array<{
-					durationPromtMsec: number
+					durationPromptMsec: number
 					durationQueueMsec: number
 					code: number
 				}>
 
 				// Calculate 95th percentile for successful requests
-				const successDurations = allDurations.filter(d => d.code === 200).map(d => d.durationPromtMsec)
+				const successDurations = allDurations.filter(d => d.code === 200).map(d => d.durationPromptMsec)
 				const queueDurations = allDurations.map(d => d.durationQueueMsec).sort((a, b) => a - b)
 
-				const p95PromtDuration = this._calculatePercentile(successDurations, 0.95)
+				const p95PromptDuration = this._calculatePercentile(successDurations, 0.95)
 				const p95QueueDuration = this._calculatePercentile(queueDurations, 0.95)
 
 				return {
 					total: stats.total || 0,
 					success: stats.success || 0,
 					failed: stats.failed || 0,
-					avgPromtDuration: stats.avgPromtDuration ? Math.round(stats.avgPromtDuration) : 0,
+					avgPromptDuration: stats.avgPromptDuration ? Math.round(stats.avgPromptDuration) : 0,
 					avgQueueDuration: stats.avgQueueDuration ? Math.round(stats.avgQueueDuration) : 0,
-					p95PromtDuration,
+					p95PromptDuration,
 					p95QueueDuration,
 				}
 			} catch (err) {
@@ -224,9 +224,9 @@ class DbClass {
 					total: 0,
 					success: 0,
 					failed: 0,
-					avgPromtDuration: 0,
+					avgPromptDuration: 0,
 					avgQueueDuration: 0,
-					p95PromtDuration: 0,
+					p95PromptDuration: 0,
 					p95QueueDuration: 0,
 				}
 			}
@@ -340,7 +340,7 @@ class DbClass {
 			id: number
 			ts: number
 			code: number
-			durationPromtMsec: number
+			durationPromptMsec: number
 			durationQueueMsec: number
 			request?: string
 			response?: string
@@ -350,27 +350,27 @@ class DbClass {
 
 		return await this._queue.add(async () => {
 			try {
-				const promtQuery = this._db!.prepare(`
-					SELECT id, ts, code, durationPromtMsec, durationQueueMsec
-					FROM promt
+				const promptQuery = this._db!.prepare(`
+					SELECT id, ts, code, durationPromptMsec, durationQueueMsec
+					FROM prompt
 					WHERE id > ?
 					ORDER BY id DESC
 					LIMIT ?
 				`)
-				const promts = promtQuery.all(afterId, limit) as Array<{
+				const prompts = promptQuery.all(afterId, limit) as Array<{
 					id: number
 					ts: number
 					code: number
-					durationPromtMsec: number
+					durationPromptMsec: number
 					durationQueueMsec: number
 				}>
 
-				const extraQuery = this._db!.prepare('SELECT request, response FROM promtExtra WHERE id = ?')
+				const extraQuery = this._db!.prepare('SELECT request, response FROM promptExtra WHERE id = ?')
 
-				return promts.map(promt => {
-					const extraRow = extraQuery.get(promt.id) as { request: string; response: string } | undefined
+				return prompts.map(prompt => {
+					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string } | undefined
 					return {
-						...promt,
+						...prompt,
 						request: extraRow?.request,
 						response: extraRow?.response,
 					}
@@ -391,7 +391,7 @@ class DbClass {
 			id: number
 			ts: number
 			code: number
-			durationPromtMsec: number
+			durationPromptMsec: number
 			durationQueueMsec: number
 			request?: string
 			response?: string
@@ -401,26 +401,26 @@ class DbClass {
 
 		return await this._queue.add(async () => {
 			try {
-				const promtQuery = this._db!.prepare(`
-					SELECT id, ts, code, durationPromtMsec, durationQueueMsec
-					FROM promt
+				const promptQuery = this._db!.prepare(`
+					SELECT id, ts, code, durationPromptMsec, durationQueueMsec
+					FROM prompt
 					WHERE ts >= ? AND ts < ?
 					ORDER BY id ASC
 				`)
-				const promts = promtQuery.all(dateStart, dateEnd) as Array<{
+				const prompts = promptQuery.all(dateStart, dateEnd) as Array<{
 					id: number
 					ts: number
 					code: number
-					durationPromtMsec: number
+					durationPromptMsec: number
 					durationQueueMsec: number
 				}>
 
-				const extraQuery = this._db!.prepare('SELECT request, response FROM promtExtra WHERE id = ?')
+				const extraQuery = this._db!.prepare('SELECT request, response FROM promptExtra WHERE id = ?')
 
-				return promts.map(promt => {
-					const extraRow = extraQuery.get(promt.id) as { request: string; response: string } | undefined
+				return prompts.map(prompt => {
+					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string } | undefined
 					return {
-						...promt,
+						...prompt,
 						request: extraRow?.request,
 						response: extraRow?.response,
 					}

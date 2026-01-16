@@ -68,7 +68,7 @@ export async function controller(fastify: FastifyInstance) {
 	// Chat logs viewer
 	fastify.get('/log/chat', {
 		schema: {
-			description: 'Chat logs viewer (promt and promtExtra tables)',
+			description: 'Chat logs viewer (prompt and promptExtra tables)',
 			tags: ['ui'],
 		}
 	}, async (req, res) => {

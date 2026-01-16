@@ -5,15 +5,15 @@ export async function saveHist(
 	code: number,
 	body: any,
 	response: any,
-	duration: { promtMsec: number; queueMsec: number },
-	allowSavePromtExtra: boolean,
+	duration: { promptMsec: number; queueMsec: number },
+	allowSavePromptExtra: boolean,
 	ip?: string,
 ) {
-	const { requestKB, responseKB, ts } = await Db().editSavePromt(code, body, response, duration, allowSavePromtExtra)
+	const { requestKB, responseKB, ts } = await Db().editSavePrompt(code, body, response, duration, allowSavePromptExtra)
 	const ipPrefix = ip ? `[from ${ip}] ` : ''
-	const message = `${ipPrefix}queue=${duration.queueMsec}ms, promt=${duration.promtMsec}ms, request=${requestKB}KB, response=${responseKB}KB`
+	const message = `${ipPrefix}queue=${duration.queueMsec}ms, prompt=${duration.promptMsec}ms, request=${requestKB}KB, response=${responseKB}KB`
 	const extra = `Request:\n${JSON.stringify(body)}\n\nResponse:\n${JSON.stringify(response)}`
-	const pipe = `API.POST.PROMT.${code}`
+	const pipe = `API.POST.PROMPT.${code}`
 
 	if (code === 200) {
 		Log().trace({ pipe, message, extra, ts })

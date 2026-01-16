@@ -5,13 +5,13 @@ import fastifySwaggerUi from '@fastify/swagger-ui'
 import fastifyStatic from '@fastify/static'
 import { controllers } from './api/index'
 import { ModelManager } from './modelManager'
-import { QueuePromt } from './queue'
+import { QueuePrompt } from './queue'
 import { Db } from './db'
 import { Log } from './log'
 import { ServerStats } from './serverStats'
 import { join } from 'path'
 
-// const ALLOW_LOG_API_PROMT = [
+// const ALLOW_LOG_API_PROMPT = [
 // 	{method: 'POST', url: }
 // ]
 
@@ -20,7 +20,7 @@ export async function Go(config: TConfig): Promise<void> {
 
 	try {
 		Db.init(config.dbFile)
-		QueuePromt.init()
+		QueuePrompt.init()
 		Log.init(config.log)
 		ServerStats.init()
 		if (Db().error) {
@@ -47,9 +47,9 @@ export async function Go(config: TConfig): Promise<void> {
 			}
 			Log().error('API', `Error handler for ${request.method} ${request.url}`, JSON.stringify(errorDetails, null, 2))
 
-			// Return a safe error response that matches PromtResponseBadDto
+			// Return a safe error response that matches PromptResponseBadDto
 			const duration = {
-				promtMsec: 0,
+				promptMsec: 0,
 				queueMsec: 0,
 			}
 
@@ -89,7 +89,7 @@ export async function Go(config: TConfig): Promise<void> {
 		}
 
 		setInterval(() => {
-			Log().debug('APP', `memory (rss) ${ServerStats().getMemoryUsageMb()} mb; memory (heap) ${ServerStats().getMemoryHeapMb()} mb; memory (external) ${ServerStats().getMemoryExternalMb()} mb; queue size ${QueuePromt().getSize()}`)
+			Log().debug('APP', `memory (rss) ${ServerStats().getMemoryUsageMb()} mb; memory (heap) ${ServerStats().getMemoryHeapMb()} mb; memory (external) ${ServerStats().getMemoryExternalMb()} mb; queue size ${QueuePrompt().getSize()}`)
 		}, 60000)
 
 		process.on('SIGTERM', async () => {

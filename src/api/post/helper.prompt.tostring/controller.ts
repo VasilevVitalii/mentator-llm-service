@@ -32,8 +32,8 @@ export async function controller(fastify: FastifyInstance) {
 			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
 			try {
-				const { promts } = req.body
-				const content = PromptConvToString(promts)
+				const { prompts } = req.body
+				const content = PromptConvToString(prompts)
 
 				res.header('Content-Type', 'text/plain')
 				res.send(content)

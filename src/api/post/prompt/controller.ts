@@ -14,7 +14,7 @@ import { Duration } from '../../duration'
 import { GetSession } from './additional/getSession'
 import { GetResponse } from './additional/getResponse'
 import { GetResponseValidation } from './additional/getResponseValidation'
-import { QueuePromt } from '../../../queue'
+import { QueuePrompt } from '../../../queue'
 import { saveHist } from './additional/saveHist'
 import { PromptOptionsParse } from 'vv-ai-prompt-format'
 import { Log } from '../../../log'
@@ -41,17 +41,17 @@ export async function controller(fastify: FastifyInstance) {
 			const pipe = 'API.POST /prompt'
 			const log = `[from ${req.ip || req.socket.remoteAddress || 'unknown'}] ${req.url}`
 
-			const durationPromtAfterQueue = new Duration()
+			const durationPromptAfterQueue = new Duration()
 			const body = req.body
-			const queue = QueuePromt()
-			const allowSavePromtExtra = fastify.appConfig.log.savePrompt
+			const queue = QueuePrompt()
+			const allowSavePromptExtra = fastify.appConfig.log.savePrompt
 			const ip = req.ip || req.socket.remoteAddress || 'unknown'
 
 			try {
 				const llamaRes = await GetLama()
 				if (!llamaRes.ok) {
 					const duration = {
-						promtMsec: durationPromtAfterQueue.getMsec(),
+						promptMsec: durationPromptAfterQueue.getMsec(),
 						queueMsec: 0,
 					}
 					const errResponse = {
@@ -59,7 +59,7 @@ export async function controller(fastify: FastifyInstance) {
 						error: llamaRes.error,
 					}
 					res.code(llamaRes.errorCode).send(errResponse)
-					await saveHist(llamaRes.errorCode, body, errResponse, duration, allowSavePromtExtra, ip)
+					await saveHist(llamaRes.errorCode, body, errResponse, duration, allowSavePromptExtra, ip)
 					return
 				}
 				const llama = llamaRes.result
@@ -81,24 +81,24 @@ export async function controller(fastify: FastifyInstance) {
 				)
 				if (!generationParamsRes.ok) {
 					const duration = {
-						promtMsec: durationPromtAfterQueue.getMsec(),
+						promptMsec: durationPromptAfterQueue.getMsec(),
 						queueMsec: 0,
 					}
 					res.code(generationParamsRes.errorCode).send({
 						duration,
 						error: generationParamsRes.error,
 					})
-					await saveHist(generationParamsRes.errorCode, body, { duration, error: generationParamsRes.error }, duration, allowSavePromtExtra, ip)
+					await saveHist(generationParamsRes.errorCode, body, { duration, error: generationParamsRes.error }, duration, allowSavePromptExtra, ip)
 					return
 				}
 				const generationParams = generationParamsRes.result
 
-				const durationPromtAfterQueueMsec = durationPromtAfterQueue.getMsec()
+				const durationPromptAfterQueueMsec = durationPromptAfterQueue.getMsec()
 				const durationQueue = new Duration()
 
 				await queue.add(async () => {
 					const queueMsec = durationQueue.getMsec()
-					const durationPromt = new Duration(durationPromtAfterQueueMsec)
+					const durationPrompt = new Duration(durationPromptAfterQueueMsec)
 
 					let context: any = undefined
 					let session: any = undefined
@@ -106,14 +106,14 @@ export async function controller(fastify: FastifyInstance) {
 						const contextRes = await GetContext(llama, body.model)
 						if (!contextRes.ok) {
 							const duration = {
-								promtMsec: durationPromt.getMsec(),
+								promptMsec: durationPrompt.getMsec(),
 								queueMsec: queueMsec,
 							}
 							res.code(contextRes.errorCode).send({
 								duration,
 								error: contextRes.error,
 							})
-							await saveHist(contextRes.errorCode, body, { duration, error: contextRes.error }, duration, allowSavePromtExtra, ip)
+							await saveHist(contextRes.errorCode, body, { duration, error: contextRes.error }, duration, allowSavePromptExtra, ip)
 							return
 						}
 						context = contextRes.result.context
@@ -122,14 +122,14 @@ export async function controller(fastify: FastifyInstance) {
 						const sessionRes = GetSession(context, body.message.system)
 						if (!sessionRes.ok) {
 							const duration = {
-								promtMsec: durationPromt.getMsec(),
+								promptMsec: durationPrompt.getMsec(),
 								queueMsec: queueMsec,
 							}
 							res.code(sessionRes.errorCode).send({
 								duration,
 								error: sessionRes.error,
 							})
-							await saveHist(sessionRes.errorCode, body, { duration, error: sessionRes.error }, duration, allowSavePromtExtra, ip)
+							await saveHist(sessionRes.errorCode, body, { duration, error: sessionRes.error }, duration, allowSavePromptExtra, ip)
 							return
 						}
 						session = sessionRes.result
@@ -139,14 +139,14 @@ export async function controller(fastify: FastifyInstance) {
 						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec, parseAsJson)
 						if (!responseRes.ok) {
 							const duration = {
-								promtMsec: durationPromt.getMsec(),
+								promptMsec: durationPrompt.getMsec(),
 								queueMsec: queueMsec,
 							}
 							res.code(responseRes.errorCode).send({
 								duration,
 								error: responseRes.error,
 							})
-							await saveHist(responseRes.errorCode, body, { duration, error: responseRes.error }, duration, allowSavePromtExtra, ip)
+							await saveHist(responseRes.errorCode, body, { duration, error: responseRes.error }, duration, allowSavePromptExtra, ip)
 							return
 						}
 						const responseJson = responseRes.result
@@ -156,20 +156,20 @@ export async function controller(fastify: FastifyInstance) {
 							const responseValidationRes = GetResponseValidation(responseJson, body.format?.jsonSchema)
 							if (!responseValidationRes.ok) {
 								const duration = {
-									promtMsec: durationPromt.getMsec(),
+									promptMsec: durationPrompt.getMsec(),
 									queueMsec: queueMsec,
 								}
 								res.code(responseValidationRes.errorCode).send({
 									duration,
 									error: responseValidationRes.error,
 								})
-								await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromtExtra, ip)
+								await saveHist(responseValidationRes.errorCode, body, { duration, error: responseValidationRes.error }, duration, allowSavePromptExtra, ip)
 								return
 							}
 						}
 
 						const duration = {
-							promtMsec: durationPromt.getMsec(),
+							promptMsec: durationPrompt.getMsec(),
 							queueMsec: queueMsec,
 						}
 						res.code(200).send({
@@ -180,10 +180,10 @@ export async function controller(fastify: FastifyInstance) {
 							},
 						})
 						Log().trace(pipe, log)
-						await saveHist(200, body, { duration, result: { loadModelStatus, data: responseJson } }, duration, allowSavePromtExtra, ip)
+						await saveHist(200, body, { duration, result: { loadModelStatus, data: responseJson } }, duration, allowSavePromptExtra, ip)
 					} catch (err) {
 						const duration = {
-							promtMsec: durationPromt.getMsec(),
+							promptMsec: durationPrompt.getMsec(),
 							queueMsec: queueMsec,
 						}
 						const error = `${err}`
@@ -192,7 +192,7 @@ export async function controller(fastify: FastifyInstance) {
 							error,
 						})
 						Log().error(pipe, log, error)
-						await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
+						await saveHist(500, body, { duration, error }, duration, allowSavePromptExtra, ip)
 					} finally {
 						if (session) {
 							session.dispose({ disposeSequence: true })
@@ -204,7 +204,7 @@ export async function controller(fastify: FastifyInstance) {
 				})
 			} catch (err) {
 				const duration = {
-					promtMsec: 0,
+					promptMsec: 0,
 					queueMsec: 0,
 				}
 				const error = `${err}`
@@ -213,7 +213,7 @@ export async function controller(fastify: FastifyInstance) {
 					error,
 				})
 				Log().error(pipe, log, error)
-				await saveHist(500, body, { duration, error }, duration, allowSavePromtExtra, ip)
+				await saveHist(500, body, { duration, error }, duration, allowSavePromptExtra, ip)
 			}
 		},
 	)

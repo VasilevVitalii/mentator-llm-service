@@ -2,7 +2,7 @@ import { Type, type Static } from '@sinclair/typebox'
 
 // POST /helper/prompt/tostring request parameters
 export const PostHelperPromptTostringRequestDto = Type.Object({
-	promts: Type.Array(Type.Any(), { description: 'Prompt array to convert to string' }),
+	prompts: Type.Array(Type.Any(), { description: 'Prompt array to convert to string' }),
 })
 
 export const PostHelperPromptTostringResponseDto = Type.String({

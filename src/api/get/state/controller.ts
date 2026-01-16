@@ -6,7 +6,7 @@ import {
 	type TGetStateResponseBad,
 } from './dto'
 import { ServerStats } from '../../../serverStats'
-import { QueuePromt } from '../../../queue'
+import { QueuePrompt } from '../../../queue'
 import { Db } from '../../../db'
 import { Log } from '../../../log'
 
@@ -31,7 +31,7 @@ export async function controller(fastify: FastifyInstance) {
 
 			try {
 				const serverStats = ServerStats()
-				const queue = QueuePromt()
+				const queue = QueuePrompt()
 				const db = Db()
 
 				// Time intervals in milliseconds

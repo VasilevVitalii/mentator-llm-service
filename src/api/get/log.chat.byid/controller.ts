@@ -18,7 +18,7 @@ export async function controller(fastify: FastifyInstance) {
 		'/log/chat/byid',
 		{
 			schema: {
-				description: 'Get chat logs (promt table) with optional filtering',
+				description: 'Get chat logs (prompt table) with optional filtering',
 				tags: ['log'],
 				querystring: GetLogChatByidRequestDto,
 				response: {

@@ -33,10 +33,10 @@ export async function controller(fastify: FastifyInstance) {
 
 			try {
 				const { content } = req.body
-				const promts = PromptConvFromString(content, 'json')
+				const prompts = PromptConvFromString(content, 'json')
 
 				res.header('Content-Type', 'application/json')
-				res.send(JSON.stringify(promts))
+				res.send(JSON.stringify(prompts))
 				Log().trace(pipe, log)
 			} catch (err: any) {
 				const error = err.message || 'Failed to parse prompt'

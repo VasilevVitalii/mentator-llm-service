@@ -4,7 +4,7 @@ import type { TResultCode } from '../../../../tresult'
 import type { TPromptRequest } from '../dto'
 import type { TConfig } from '../../../../config'
 
-type TPromtFormat = NonNullable<TPromptRequest['format']>
+type TPromptFormat = NonNullable<TPromptRequest['format']>
 
 export type TGenerationParams = {
 	temperature: number
@@ -30,7 +30,7 @@ export type TGenerationParams = {
 	grammar?: LlamaGrammar
 }
 
-export async function getGenerationParams(llama: Llama, options: TConfig['defaultOptions'], format?: TPromtFormat): Promise<TResultCode<TGenerationParams>> {
+export async function getGenerationParams(llama: Llama, options: TConfig['defaultOptions'], format?: TPromptFormat): Promise<TResultCode<TGenerationParams>> {
 	try {
 		const repeatPenalty: TGenerationParams['repeatPenalty'] = {
 			penalty: options.repeatPenalty,

@@ -207,7 +207,7 @@
                     </div>
                     <div v-for="log in displayLogs" :key="log.id" class="log-entry">
                         <div class="log-main-line" :class="{ error: log.code !== 200 }">
-                            [{{ formatTimestamp(log.ts) }}] [{{ log.code }}] duration promt {{ formatDuration(log.durationPromtMsec) }}; duration queue {{ formatDuration(log.durationQueueMsec) }}
+                            [{{ formatTimestamp(log.ts) }}] [{{ log.code }}] duration prompt {{ formatDuration(log.durationPromptMsec) }}; duration queue {{ formatDuration(log.durationQueueMsec) }}
                         </div>
                         <div v-if="log.request"
                              class="log-data-line"
@@ -400,10 +400,10 @@
                 },
                 formatLogForExport(log) {
                     const timestampISO = this.formatTimestamp(log.ts)
-                    const durationPromt = this.formatDuration(log.durationPromtMsec)
+                    const durationPrompt = this.formatDuration(log.durationPromptMsec)
                     const durationQueue = this.formatDuration(log.durationQueueMsec)
 
-                    let line = `[${timestampISO}] [${log.code}] duration promt ${durationPromt}; duration queue ${durationQueue}`
+                    let line = `[${timestampISO}] [${log.code}] duration prompt ${durationPrompt}; duration queue ${durationQueue}`
 
                     if (log.request) {
                         line += '\n' + log.request.split('\n').map(l => `        ${l}`).join('\n')

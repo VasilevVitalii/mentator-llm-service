@@ -10,7 +10,7 @@ const ChatLogDto = Type.Object({
 	id: Type.Number(),
 	ts: Type.Number(),
 	code: Type.Number(),
-	durationPromtMsec: Type.Number(),
+	durationPromptMsec: Type.Number(),
 	durationQueueMsec: Type.Number(),
 	request: Type.Optional(Type.String()),
 	response: Type.Optional(Type.String()),

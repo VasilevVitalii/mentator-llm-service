@@ -44,4 +44,4 @@ export class QueueClass {
 	}
 }
 
-export const QueuePromt = singleton(QueueClass)
+export const QueuePrompt = singleton(QueueClass)

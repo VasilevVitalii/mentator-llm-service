@@ -25,7 +25,7 @@ export const PostPromptRequestDto = Type.Object({
 
 export const PostPromptResponseDto = Type.Object({
 	duration: Type.Object({
-		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
+		promptMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
 		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
 	}),
 	result: Type.Object({
@@ -38,7 +38,7 @@ export const PostPromptResponseDto = Type.Object({
 
 export const PostPromptResponseBadDto = Type.Object({
 	duration: Type.Object({
-		promtMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
+		promptMsec: Type.Number({ description: 'Actual prompt processing duration in milliseconds' }),
 		queueMsec: Type.Number({ description: 'Time spent waiting in queue in milliseconds' }),
 	}),
 	error: Type.String({ description: 'Error message' }),

@@ -248,7 +248,7 @@ curl -X POST http://127.0.0.1:19777/prompt \
 ```json
 {
   "duration": {
-    "promtMsec": 5234,
+    "promptMsec": 5234,
     "queueMsec": 0
   },
   "result": {
@@ -334,7 +334,7 @@ async function extractPeople(text: string) {
 ```typescript
 {
   duration: {
-    promtMsec: number;        // Время обработки
+    promptMsec: number;        // Время обработки
     queueMsec: number;        // Время ожидания в очереди
   };
   result: {
@@ -348,7 +348,7 @@ async function extractPeople(text: string) {
 ```typescript
 {
   duration: {
-    promtMsec: number;
+    promptMsec: number;
     queueMsec: number;
   };
   error: string;              // Описание ошибки

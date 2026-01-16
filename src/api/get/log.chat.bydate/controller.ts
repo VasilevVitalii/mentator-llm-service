@@ -29,7 +29,7 @@ function formatChatLogLine(log: {
 	id: number
 	ts: number
 	code: number
-	durationPromtMsec: number
+	durationPromptMsec: number
 	durationQueueMsec: number
 	request?: string
 	response?: string
@@ -44,10 +44,10 @@ function formatChatLogLine(log: {
 	const seconds = String(date.getSeconds()).padStart(2, '0')
 	const ms = String(date.getMilliseconds()).padStart(3, '0')
 	const timestampLocal = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`
-	const durationPromt = formatDuration(log.durationPromtMsec)
+	const durationPrompt = formatDuration(log.durationPromptMsec)
 	const durationQueue = formatDuration(log.durationQueueMsec)
 
-	let line = `[${timestampLocal}] [${log.code}] duration promt ${durationPromt}; duration queue ${durationQueue}`
+	let line = `[${timestampLocal}] [${log.code}] duration prompt ${durationPrompt}; duration queue ${durationQueue}`
 
 	if (log.request) {
 		line += '\n' + log.request.split('\n').map(l => `        ${l}`).join('\n')
