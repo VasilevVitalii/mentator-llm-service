@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite'
+import Database, { type Database as DatabaseType } from 'better-sqlite3'
 import { singleton } from './util/singleton'
 import { QueueClass } from './queue'
 import { mkdirSync } from 'fs'
@@ -8,7 +8,7 @@ import { Log } from './log'
 const PIPE = 'DB'
 
 class DbClass {
-	private _db: Database | undefined
+	private _db: DatabaseType | undefined
 	private _queue: QueueClass
 	public error: string | undefined
 
@@ -19,11 +19,11 @@ class DbClass {
 			const dir = dirname(dbFilePath)
 			mkdirSync(dir, { recursive: true })
 
-			this._db = new Database(dbFilePath, { create: true })
-			this._db.run('PRAGMA journal_mode = WAL')
-			this._db.run('PRAGMA busy_timeout = 5000')
+			this._db = new Database(dbFilePath)
+			this._db.pragma('journal_mode = WAL')
+			this._db.pragma('busy_timeout = 5000')
 
-			this._db.run(`
+			this._db.exec(`
 				CREATE TABLE IF NOT EXISTS log (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					ts INTEGER NOT NULL,
@@ -32,9 +32,9 @@ class DbClass {
 					message TEXT NOT NULL
 				)
 			`)
-			this._db.run(`CREATE INDEX IF NOT EXISTS idx_log_ts ON log(ts)`)
+			this._db.exec(`CREATE INDEX IF NOT EXISTS idx_log_ts ON log(ts)`)
 
-			this._db.run(`
+			this._db.exec(`
 				CREATE TABLE IF NOT EXISTS logExtra (
 					id INTEGER NOT NULL,
 					data TEXT NOT NULL,
@@ -42,7 +42,7 @@ class DbClass {
 				)
 			`)
 
-			this._db.run(`
+			this._db.exec(`
 				CREATE TABLE IF NOT EXISTS prompt (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					ts INTEGER NOT NULL,
@@ -51,9 +51,9 @@ class DbClass {
 					code INTEGER NOT NULL
 				)
 			`)
-			this._db.run(`CREATE INDEX IF NOT EXISTS idx_prompt_ts ON prompt(ts)`)
+			this._db.exec(`CREATE INDEX IF NOT EXISTS idx_prompt_ts ON prompt(ts)`)
 
-			this._db.run(`
+			this._db.exec(`
 				CREATE TABLE IF NOT EXISTS promptExtra (
 					id INTEGER PRIMARY KEY,
 					request TEXT NOT NULL,
@@ -138,8 +138,8 @@ class DbClass {
 
 		await this._queue.add(async () => {
 			try {
-				this._db!.run('DELETE FROM logExtra WHERE id IN (SELECT id FROM log WHERE ts < ?)', [cutoffTimestamp])
-				this._db!.run('DELETE FROM log WHERE ts < ?', [cutoffTimestamp])
+				this._db!.prepare('DELETE FROM logExtra WHERE id IN (SELECT id FROM log WHERE ts < ?)').run(cutoffTimestamp)
+				this._db!.prepare('DELETE FROM log WHERE ts < ?').run(cutoffTimestamp)
 			} catch (err) {
 				this.error = `${err}`
 				Log().error(PIPE, `database error on cleanup old logs: ${err}`)

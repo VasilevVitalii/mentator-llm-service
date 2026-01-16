@@ -15,7 +15,7 @@ export type TModelFile = {
 class ModelManagerClass extends ClassLogger {
 	private _modelDir: string
 	private _modelFileList: TModelFile[] = []
-	private _scanTimeout: Timer | null = null
+	private _scanTimeout: NodeJS.Timeout | null = null
 
 	private async _scanModelDir() {
 		const fileListRes = await fsReadDir(this._modelDir)

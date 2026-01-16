@@ -6,9 +6,7 @@ import { VERSION } from '../package-version.js'
 
 //TODO в самом конце разработки сервиса убрать из логирования автозапросы страниц (логов, статистики)
 
-// Support both Bun and Node.js
-const argv = typeof Bun !== 'undefined' ? Bun.argv : process.argv
-const args = minimist(argv.slice(2))
+const args = minimist(process.argv.slice(2))
 
 if (args['conf-use']) {
 	const confUseParam = args['conf-use']

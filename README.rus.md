@@ -22,7 +22,7 @@
 - **Веб-интерфейс** - интерактивный чат для тестирования и экспериментов
 - **Очередь запросов** - автоматическая обработка конкурентных запросов для предотвращения перегрузки GPU/CPU
 - **Гибкая конфигурация** - настраиваемые параметры модели, логирование и настройки базы данных
-- **Построен на Bun** - быстрый старт и выполнение на базе Bun runtime
+- **TypeScript/Node.js** - современный стек с полной типобезопасностью
 
 ## Зачем использовать Mentator?
 
@@ -49,7 +49,7 @@
 
 ### Требования
 
-- [Bun](https://bun.sh/) runtime (v1.0.0 или выше)
+- [Node.js](https://nodejs.org/) v20.0.0 или выше
 - Как минимум один GGUF файл модели (см. [Загрузка моделей](#загрузка-моделей))
 - Минимум 8GB RAM (рекомендуется 16GB+ для больших моделей)
 
@@ -58,7 +58,7 @@
 ```bash
 git clone https://github.com/VasilevVitalii/mentator-llm-service.git
 cd mentator-llm-service
-bun install
+npm install
 ```
 
 ### Загрузка моделей
@@ -79,7 +79,11 @@ bun install
 ### 1. Генерация шаблона конфигурации
 
 ```bash
-bun run src/index.ts --conf-gen /путь/к/директории/конфигурации
+# Сначала соберите проект
+npm run buildjs
+
+# Сгенерируйте шаблон конфигурации
+node distjs/index.js --conf-gen /путь/к/директории/конфигурации
 ```
 
 Это создаст `mentator-llm-service.config.TEMPLATE.jsonc` со всеми доступными опциями и документацией.
@@ -114,7 +118,7 @@ mv mentator-llm-service.config.TEMPLATE.jsonc mentator-llm-service.config.jsonc
 ### 3. Запуск сервиса
 
 ```bash
-bun run src/index.ts --conf-use /путь/к/mentator-llm-service.config.jsonc
+node distjs/index.js --conf-use /путь/к/mentator-llm-service.config.jsonc
 ```
 
 Сервис запустится на настроенном порту (по умолчанию: `http://localhost:19777`).
@@ -400,29 +404,17 @@ async function extractPeople(text: string) {
 
 ## Сборка из исходников
 
-### Сборка исполняемого файла (Bun)
-
-Соберите автономный исполняемый файл для вашей платформы:
+### Сборка JavaScript
 
 ```bash
-# Linux
-bun run build:linux
-# Результат: dist/mentator-llm-service
-
-# Windows
-bun run build:win
-# Результат: dist/mentator-llm-service.exe
+npm run buildjs
 ```
 
-Исполняемый файл включает Bun runtime и все зависимости.
-
-### Сборка JavaScript (совместимость с Node.js)
+Результат в директории `distjs/` может быть запущен с Node.js:
 
 ```bash
-bun run buildjs
+node distjs/index.js --conf-use /путь/к/config.jsonc
 ```
-
-Результат в директории `distjs/` может быть запущен с Node.js.
 
 ## Поддержка Docker
 

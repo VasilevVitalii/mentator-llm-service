@@ -1,10 +1,10 @@
 import type { Llama, LlamaGrammar } from 'node-llama-cpp'
 import { ConvertJsonSchemaToGbnf } from 'vv-ai-prompt-format'
 import type { TResultCode } from '../../../../tresult'
-import type { TPromptRequest } from '../dto'
+import type { TPostPromptRequest } from '../dto'
 import type { TConfig } from '../../../../config'
 
-type TPromptFormat = NonNullable<TPromptRequest['format']>
+type TPromptFormat = NonNullable<TPostPromptRequest['format']>
 
 export type TGenerationParams = {
 	temperature: number

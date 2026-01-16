@@ -22,7 +22,7 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **Web UI** - interactive chat interface for testing and experimentation
 - **Request queueing** - automatic handling of concurrent requests to prevent GPU/CPU overload
 - **Flexible configuration** - customizable model parameters, logging, and database settings
-- **Built with Bun** - fast startup and execution powered by the Bun runtime
+- **TypeScript/Node.js** - modern stack with full type safety
 
 ## Why Use Mentator?
 
@@ -49,7 +49,7 @@ Traditional LLMs often produce inconsistent output formats, requiring complex po
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) runtime (v1.0.0 or higher)
+- [Node.js](https://nodejs.org/) v20.0.0 or higher
 - At least one GGUF model file (see [Downloading Models](#downloading-models))
 - Minimum 8GB RAM (16GB+ recommended for larger models)
 
@@ -58,7 +58,7 @@ Traditional LLMs often produce inconsistent output formats, requiring complex po
 ```bash
 git clone https://github.com/VasilevVitalii/mentator-llm-service.git
 cd mentator-llm-service
-bun install
+npm install
 ```
 
 ### Downloading Models
@@ -79,7 +79,11 @@ Place downloaded `.gguf` files in a directory of your choice (you'll specify thi
 ### 1. Generate Configuration Template
 
 ```bash
-bun run src/index.ts --conf-gen /path/to/config/directory
+# First build the project
+npm run buildjs
+
+# Generate config template
+node distjs/index.js --conf-gen /path/to/config/directory
 ```
 
 This creates `mentator-llm-service.config.TEMPLATE.jsonc` with all available options and documentation.
@@ -114,7 +118,7 @@ Minimal required changes:
 ### 3. Start the Service
 
 ```bash
-bun run src/index.ts --conf-use /path/to/mentator-llm-service.config.jsonc
+node distjs/index.js --conf-use /path/to/mentator-llm-service.config.jsonc
 ```
 
 The service will start on the configured port (default: `http://localhost:19777`).
@@ -400,29 +404,17 @@ The service provides several web pages:
 
 ## Building from Source
 
-### Build Executable (Bun)
-
-Build a standalone executable for your platform:
+### Build JavaScript
 
 ```bash
-# Linux
-bun run build:linux
-# Output: dist/mentator-llm-service
-
-# Windows
-bun run build:win
-# Output: dist/mentator-llm-service.exe
+npm run buildjs
 ```
 
-The executable includes the Bun runtime and all dependencies.
-
-### Build JavaScript (Node.js compatibility)
+Output in `distjs/` directory can be run with Node.js:
 
 ```bash
-bun run buildjs
+node distjs/index.js --conf-use /path/to/config.jsonc
 ```
-
-Output in `distjs/` directory can be run with Node.js.
 
 ## Docker Support
 
