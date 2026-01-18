@@ -1,8 +1,10 @@
 import minimist from 'minimist'
-import { ConfigGerenate, ConfigRead } from './config'
-import { resolve } from 'path'
+import { ConfigDockerGerenateFile, ConfigDockerReadFile, ConfigGerenate, ConfigGerenateFile, ConfigReadFile } from './config'
+import { basename, dirname, resolve } from 'path'
 import { Go } from './go'
 import { VERSION } from '../package-version.js'
+import { fsReadFileSync } from './util/fsReadFile'
+import { fsExistsFileSync } from './util/fsExistsFile'
 
 //TODO в самом конце разработки сервиса убрать из логирования автозапросы страниц (логов, статистики)
 
@@ -13,7 +15,7 @@ if (args['conf-use']) {
 	if (typeof confUseParam !== 'string' || confUseParam.trim().length === 0) {
 		console.error('ERROR: Please provide a path to the config file. Example: --conf-use /path/to/config.jsonc')
 	} else {
-		const res = ConfigRead(resolve(confUseParam))
+		const res = ConfigReadFile(resolve(confUseParam))
 		if (res.error) {
 			console.error(res.error)
 		} else {
@@ -25,13 +27,42 @@ if (args['conf-use']) {
 	if (typeof confGenParam !== 'string' || confGenParam.trim().length === 0) {
 		console.error('ERROR: Please provide a directory path to generate the config template. Example: --conf-gen /path/to/dir')
 	} else {
-		const res = ConfigGerenate(resolve(confGenParam))
+		const res = ConfigGerenateFile(resolve(confGenParam))
 		if (res.error) {
 			console.error(res.error)
 		} else {
 			console.log(res.success)
 		}
 	}
+} else if (args['conf-docker']) {
+	const confDockerParam = args['conf-docker']
+	if (typeof confDockerParam !== 'string' || confDockerParam.trim().length === 0) {
+		console.error('ERROR: Please provide a path to the config file. Example: --conf-use /path/to/config.jsonc')
+	}
+	if (!fsExistsFileSync(confDockerParam)) {
+		const ConfigDockerGerenateFileRes = ConfigDockerGerenateFile(dirname(confDockerParam), basename(confDockerParam))
+		if (ConfigDockerGerenateFileRes.error) {
+			console.error(ConfigDockerGerenateFileRes.error)
+			process.exit(1)
+		}
+	}
+	const ConfigDockerReadFileRes = ConfigDockerReadFile(confDockerParam)
+	if (ConfigDockerReadFileRes.error) {
+		console.error(ConfigDockerReadFileRes.error)
+		process.exit(1)
+	}
+	const ConfigGerenateRes = ConfigGerenate()
+	if (ConfigGerenateRes.error) {
+		console.error(ConfigGerenateRes.error)
+		process.exit(1)
+	}
+	ConfigGerenateRes.conf!.port = 19777
+	ConfigGerenateRes.conf!.dbFile = '/opt/mentator-llm-service/data/mentator-llm-service.db'
+	ConfigGerenateRes.conf!.modelDir = '/opt/mentator-llm-service/data/models'
+	Go({
+		...ConfigGerenateRes.conf!,
+		...ConfigDockerReadFileRes.conf!
+	})
 } else {
 	onHelp()
 }
