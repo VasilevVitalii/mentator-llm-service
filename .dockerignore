@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build outputs
+dist
+distjs
+out
+*.tgz
+
+# Development files
+.git
+.gitignore
+.vscode
+.idea
+
+# Documentation
+*.md
+!README.md
+
+# Logs
+logs
+*.log
+
+# Test data
+coverage
+*.lcov
+debug
+
+# Environment files
+.env
+.env.*
+
+# Caches
+.cache
+.eslintcache
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Docker files (not needed inside container)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Default models will be copied separately by build script
+default-models

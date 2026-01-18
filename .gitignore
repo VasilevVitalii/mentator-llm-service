@@ -35,3 +35,6 @@ debug/testdata
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Docker build context
+default-models
