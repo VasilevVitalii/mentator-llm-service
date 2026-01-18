@@ -92,11 +92,11 @@ NVIDIA GPU (CUDA) → AMD GPU (ROCm) → CPU
   - `distjs/` — собранное приложение
   - `node_modules/` — зависимости (включая скомпилированный node-llama-cpp)
   - `package.json`
-- Копирование entrypoint скрипта
+- Копирование `start-docker.sh` скрипта
 - Healthcheck для мониторинга состояния сервиса
 
 ### Entrypoint скрипт
-Создать `docker-entrypoint.sh`, который:
+Создать `start-docker.sh`, который:
 1. Копирует дефолтные модели из `/opt/mentator-llm-service/default-models/` в `/opt/mentator-llm-service/data/models/` если папка пустая
 2. Проверяет наличие NVIDIA GPU (`nvidia-smi`)
 3. Если нет — проверяет AMD GPU (`rocm-smi` или `/dev/kfd`, `/dev/dri`)
