@@ -19,6 +19,8 @@ import { controller as getHelperExampleJsonresponse } from './get/helper.example
 import { controller as getHelperExampleOptions } from './get/helper.example.options/controller'
 import { controller as getHelperExampleOptionsJson } from './get/helper.example.optionsjson/controller'
 
+import { controller as deleteLogChat } from './delete/log.chat/controller'
+
 export const controllers = [
 	postPrompt,
 	postHelperPromptFromstring,
@@ -30,6 +32,7 @@ export const controllers = [
 	getLogCoreBydate,
 	getLogChatByid,
 	getLogChatBydate,
+	deleteLogChat,
 	getState,
 	getStateVersion,
 	getStateModels,

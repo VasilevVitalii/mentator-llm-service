@@ -62,6 +62,7 @@
         }
 
         .log-data-line {
+            position: relative;
             margin-top: 0;
             color: #666;
             white-space: pre-wrap;
@@ -80,6 +81,28 @@
 
         .log-data-line.error:hover {
             background-color: #f5dcc4;
+        }
+
+        .copy-button {
+            position: absolute;
+            left: 8px;
+            top: 0;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            user-select: none;
+            opacity: 0.6;
+            line-height: 1;
+        }
+
+        .copy-button:hover {
+            opacity: 1;
+        }
+
+        .copy-button:active {
+            opacity: 0.5;
         }
 
         .checkbox-group {
@@ -178,6 +201,53 @@
             justify-content: flex-end;
             gap: 8px;
         }
+
+        .confirm-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .confirm-modal-window {
+            background-color: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .confirm-modal-title {
+            background-color: var(--b-warn1);
+            color: var(--f-main1);
+            padding: 12px 24px;
+            margin: -24px -24px 16px -24px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .confirm-modal-message {
+            margin-bottom: 24px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--f-main2);
+        }
+
+        .confirm-modal-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -193,7 +263,10 @@
             <div class="logs-container">
                 <!-- Top section -->
                 <div class="logs-top-section">
-                    <button class="form-button width-220" @click="onDownloadClick">download</button>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="form-button width-220" @click="onDownloadClick">download</button>
+                        <button class="form-button width-220 button-clear" :disabled="logs.length === 0" @click="onClearClick">clear</button>
+                    </div>
                     <div class="checkbox-group">
                         <input type="checkbox" id="follow" v-model="follow" />
                         <label for="follow">follow</label>
@@ -213,14 +286,14 @@
                              class="log-data-line"
                              :class="{ error: log.code !== 200 }"
                              @click="toggleExpanded(log.id, 'request')">
-                            request
+                            <button class="copy-button" title="copy this request to clipboard" @click.stop="copyToClipboard(log.request)">📋</button>request
 {{ isExpanded(log.id, 'request') ? log.request : truncateText(log.request, 500) }}
                         </div>
                         <div v-if="log.response"
                              class="log-data-line"
                              :class="{ error: log.code !== 200 }"
                              @click="toggleExpanded(log.id, 'response')">
-                            response
+                            <button class="copy-button" title="copy this response to clipboard" @click.stop="copyToClipboard(log.response)">📋</button>response
 {{ isExpanded(log.id, 'response') ? log.response : truncateText(log.response, 500) }}
                         </div>
                     </div>
@@ -264,6 +337,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Confirm Modal -->
+        <div v-if="confirmModalOpen" class="confirm-modal-backdrop" @click.self="onConfirmCancel" @keydown.esc="onConfirmCancel">
+            <div class="confirm-modal-window" role="dialog" aria-labelledby="confirm-modal-title" aria-modal="true">
+                <h2 id="confirm-modal-title" class="confirm-modal-title">Confirm Action</h2>
+
+                <div class="confirm-modal-message">
+                    {{ confirmMessage }}
+                </div>
+
+                <div class="confirm-modal-controls">
+                    <button class="form-button width-120" @click="onConfirmOk">ok</button>
+                    <button class="form-button width-120 button-cancel" @click="onConfirmCancel">cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
@@ -280,7 +369,10 @@
                     expandedMap: {}, // { logId: { request: true/false, response: true/false } }
                     pollInterval: null,
                     dateModalOpen: false,
-                    downloadDateHour: ''
+                    downloadDateHour: '',
+                    confirmModalOpen: false,
+                    confirmMessage: '',
+                    confirmCallback: null
                 }
             },
             computed: {
@@ -422,6 +514,14 @@
                     const sorted = [...filtered].sort((a, b) => a.id - b.id)
                     return sorted.map(log => this.formatLogForExport(log)).join('\n')
                 },
+                async copyToClipboard(text) {
+                    try {
+                        await navigator.clipboard.writeText(text)
+                    } catch (err) {
+                        console.error('Failed to copy to clipboard:', err)
+                        alert('Failed to copy to clipboard')
+                    }
+                },
                 async onCopyCurrentClick() {
                     try {
                         const text = this.getCurrentLogsAsText()
@@ -467,6 +567,47 @@
                 },
                 onDateCancel() {
                     this.dateModalOpen = false
+                },
+                onClearClick() {
+                    this.showConfirm('Are you sure you want to clear all chat logs?', async () => {
+                        try {
+                            const res = await fetch('/log/chat', {
+                                method: 'DELETE'
+                            })
+
+                            if (!res.ok) {
+                                throw new Error(`HTTP error: ${res.status}`)
+                            }
+
+                            const result = await res.json()
+
+                            // Clear local logs array
+                            this.logs = []
+
+                            console.log(`Cleared ${result.deleted} chat log records`)
+                        } catch (err) {
+                            console.error('Failed to clear chat logs:', err)
+                            alert('Failed to clear chat logs')
+                        }
+                    })
+                },
+                showConfirm(message, callback) {
+                    this.confirmMessage = message
+                    this.confirmCallback = callback
+                    this.confirmModalOpen = true
+                },
+                onConfirmOk() {
+                    this.confirmModalOpen = false
+                    if (this.confirmCallback) {
+                        this.confirmCallback()
+                        this.confirmCallback = null
+                    }
+                    this.confirmMessage = ''
+                },
+                onConfirmCancel() {
+                    this.confirmModalOpen = false
+                    this.confirmCallback = null
+                    this.confirmMessage = ''
                 },
                 async onDateOk() {
                     const dateHourStr = this.downloadDateHour.trim()

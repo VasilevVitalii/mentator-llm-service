@@ -27,7 +27,7 @@ export const SConfig = Type.Object({
 			maximum: 365,
 		}),
 		savePrompt: Type.Boolean({
-			description: 'Save full request/response text for /prompt endpoint in promptExtra table',
+			description: 'Save full info from API /promt by success request/response in prompt/promptExtra tables',
 			default: false,
 		}),
 	}),

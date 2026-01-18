@@ -13,46 +13,8 @@ const MAX_EXTRA_LENGTH = 500
 
 function truncateExtra(extra: string | undefined): string | undefined {
 	if (!extra) return undefined
-
-	const lines = extra.split('\n')
-	let requestSection = ''
-	let responseSection = ''
-	let inRequest = false
-	let inResponse = false
-
-	for (const line of lines) {
-		if (line.startsWith('Request:')) {
-			inRequest = true
-			inResponse = false
-			requestSection = line
-			continue
-		}
-		if (line.startsWith('Response:')) {
-			inResponse = true
-			inRequest = false
-			responseSection = line
-			continue
-		}
-		if (inRequest && requestSection.length < MAX_EXTRA_LENGTH + 8) {
-			requestSection += '\n' + line
-		}
-		if (inResponse && responseSection.length < MAX_EXTRA_LENGTH + 9) {
-			responseSection += '\n' + line
-		}
-	}
-
-	let result = ''
-	if (requestSection) {
-		const truncated = requestSection.length > MAX_EXTRA_LENGTH + 8 ? requestSection.substring(0, MAX_EXTRA_LENGTH + 8) + '...' : requestSection
-		result += truncated
-	}
-	if (responseSection) {
-		if (result) result += '\n\n'
-		const truncated = responseSection.length > MAX_EXTRA_LENGTH + 9 ? responseSection.substring(0, MAX_EXTRA_LENGTH + 9) + '...' : responseSection
-		result += truncated
-	}
-
-	return result || undefined
+	if (extra.length <= MAX_EXTRA_LENGTH) return extra
+	return extra.substring(0, MAX_EXTRA_LENGTH) + '...'
 }
 
 class LogClass {

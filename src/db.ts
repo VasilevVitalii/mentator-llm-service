@@ -70,8 +70,7 @@ class DbClass {
 		code: number,
 		request: any,
 		response: any,
-		duration: { promptMsec: number; queueMsec: number },
-		saveExtra: boolean,
+		duration?: { promptMsec?: number; queueMsec?: number }
 	): Promise<{ requestKB: string; responseKB: string; ts: number }> {
 		const ts = Date.now()
 		const requestText = JSON.stringify(request)
@@ -87,13 +86,11 @@ class DbClass {
 				const query1 = this._db!.prepare(
 					'INSERT INTO prompt (ts, durationPromptMsec, durationQueueMsec, code) VALUES (?, ?, ?, ?)',
 				)
-				const result = query1.run(ts, duration.promptMsec, duration.queueMsec, code)
+				const result = query1.run(ts, duration?.promptMsec || 0, duration?.queueMsec || 0, code)
 				const promptId = result.lastInsertRowid
 
-				if (saveExtra) {
-					const query2 = this._db!.prepare('INSERT INTO promptExtra (id, request, response) VALUES (?, ?, ?)')
-					query2.run(promptId, requestText, responseText)
-				}
+				const query2 = this._db!.prepare('INSERT INTO promptExtra (id, request, response) VALUES (?, ?, ?)')
+				query2.run(promptId, requestText, responseText)
 			} catch (err) {
 				this.error = `${err}`
 				Log().error(PIPE, `database error on save prompt: ${err}`)
@@ -429,6 +426,26 @@ class DbClass {
 				this.error = `${err}`
 				Log().error(PIPE, `database error on get chat logs by date hour: ${err}`)
 				return []
+			}
+		})
+	}
+
+	async editClearChatLogs(): Promise<number> {
+		if (this.error) return 0
+
+		return await this._queue.add(async () => {
+			try {
+				const countQuery = this._db!.prepare('SELECT COUNT(*) as count FROM prompt')
+				const count = (countQuery.get() as { count: number }).count
+
+				this._db!.prepare('DELETE FROM promptExtra').run()
+				this._db!.prepare('DELETE FROM prompt').run()
+
+				return count
+			} catch (err) {
+				this.error = `${err}`
+				Log().error(PIPE, `database error on clear chat logs: ${err}`)
+				return 0
 			}
 		})
 	}

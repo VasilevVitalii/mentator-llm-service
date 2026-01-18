@@ -73,12 +73,13 @@
 
                 <h3>Getting Started</h3>
                 <p>
-                    <strong>Download Models:</strong> You need to download GGUF models manually.
-                    For example, you can start with
-                    <a href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf"
-                       target="_blank" rel="noopener">Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf</a>
-                    from <a href="https://huggingface.co/models?library=gguf" target="_blank" rel="noopener">Hugging Face</a>.
-                    Place downloaded .gguf files in your configured models directory.
+                    The service comes with a pre-installed <strong>qwen2.5-0.5b-instruct-q8_0.gguf</strong> model,
+                    ready to use out of the box for demonstrating basic capabilities. For production use and better quality results,
+                    we recommend downloading more powerful models from
+                    <a href="https://huggingface.co/models?library=gguf" target="_blank" rel="noopener">Hugging Face</a>
+                    (such as <a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener">Qwen2.5-7B-Instruct</a>
+                    or <a href="https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF" target="_blank" rel="noopener">Llama-3.1-8B-Instruct</a>)
+                    and placing them in the configured models directory.
                 </p>
 
                 <h3>Usage Examples</h3>
@@ -126,11 +127,32 @@
 <pre>curl -X POST http://127.0.0.1:19777/prompt \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
+    "model": "qwen2.5-0.5b-instruct-q8_0.gguf",
     "message": {
-      "user": "Get all people (name, age, etc.) from this text: I am Bob, I am 9 years old and I live on Sunny Street. My friend Diana lives across from me, she is 8 years old and does gymnastics. A little further away lives my friend John, he is a year older than me. We like to play tennis with him. We ask Mr. Smith to judge our game. He is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us."
+      "user": "Get all peoples (name, age, ext) from this text: \nI am Bob, I am 9 years old and I live on Sunny Street. \nMy friend Diana lives across from me, she is 8 years old and does gymnastics. \nA little further away lives my friend John, he is a year older than me. \nWe like to play tennis with him. \nWe ask Mr. Smith to judge our game. \nHe is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us. "
     },
-    "durationMsec": 30000,
+    "durationMsec": 3600000,
+    "options": {
+      "temperature": 0.0,
+      "topP": 0.1,
+      "topK": 10,
+      "minP": 0.0,
+      "maxTokens": 4096,
+      "repeatPenalty": 1.0,
+      "repeatPenaltyNum": 0,
+      "presencePenalty": 0.0,
+      "frequencyPenalty": 0.0,
+      "mirostat": 0,
+      "mirostatTau": 5.0,
+      "mirostatEta": 0.1,
+      "penalizeNewline": false,
+      "stopSequences": [],
+      "trimWhitespace": true,
+      "tokenBias": {},
+      "evaluationPriority": 5,
+      "contextShiftSize": 0,
+      "disableContextShift": false
+    },
     "format": {
       "useGrammar": true,
       "jsonSchema": {
@@ -153,6 +175,33 @@
                         The response will contain <code>result.data</code> with a <strong>validated JSON array</strong>
                         matching your schema - no parsing errors, no invalid formats!
                     </p>
+                    <p><strong>Expected result.data:</strong></p>
+<pre>[
+  {
+    "name": "Bob",
+    "age": 9,
+    "sex": "male",
+    "hobby": "tennis"
+  },
+  {
+    "name": "Diana",
+    "age": 8,
+    "sex": "female",
+    "hobby": "gymnastics"
+  },
+  {
+    "name": "John",
+    "age": 9,
+    "sex": "male",
+    "hobby": "tennis"
+  },
+  {
+    "name": "Mr. Smith",
+    "age": 92,
+    "sex": "male",
+    "hobby": "tennis referee"
+  }
+]</pre>
                 </div>
             </div>
         </div>
