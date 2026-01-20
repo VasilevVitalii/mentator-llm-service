@@ -252,3 +252,8 @@ docker run \
 3. Приступить к реализации Dockerfile
 4. Создать entrypoint скрипт
 5. Создать build-скрипт
+
+Итоговые команды для запуска:
+CPU: docker run --rm -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest
+NVIDIA GPU: docker run --rm --gpus=all -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest
+AMD GPU: docker run --rm --device /dev/kfd --device /dev/dri -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest

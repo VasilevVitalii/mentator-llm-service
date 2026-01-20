@@ -43,6 +43,3 @@ debug
 Dockerfile
 .dockerignore
 docker-compose.yml
-
-# Default models will be copied separately by build script
-default-models

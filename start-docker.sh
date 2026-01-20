@@ -67,4 +67,4 @@ echo ""
 
 # Step 3: Start the application
 echo "Starting Mentator LLM Service..."
-exec node /opt/mentator-llm-service/distjs/index.js --conf-docker /opt/mentator-llm-service/data/mentator-llm-service.conf.jsonc
+exec node /opt/mentator-llm-service/distjs/src/index.js --conf-docker /opt/mentator-llm-service/data/mentator-llm-service.conf.jsonc
