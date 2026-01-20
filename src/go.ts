@@ -84,6 +84,11 @@ export async function Go(config: TConfig): Promise<void> {
 			prefix: '/static/',
 		})
 
+		// Serve favicon.ico from root
+		fastify.get('/favicon.ico', async (request: FastifyRequest, reply: FastifyReply) => {
+			return reply.sendFile('favicon.ico', join(process.cwd(), 'src', 'static'))
+		})
+
 		for (const controller of controllers) {
 			await controller(fastify)
 		}

@@ -51,9 +51,8 @@ COPY --from=builder /build/package.json ./package.json
 COPY start-docker.sh /opt/mentator-llm-service/start-docker.sh
 RUN chmod +x /opt/mentator-llm-service/start-docker.sh
 
-# Copy default model (this will be added by build script)
-# The build script should copy the model to ./default-models/ before building the image
-COPY default-models/* /opt/mentator-llm-service/default-models/ 2>/dev/null || echo "No default models found, will be added by build script"
+# Copy default models (prepared by build script)
+COPY default-models/* /opt/mentator-llm-service/default-models/
 
 # Expose port
 EXPOSE 19777
