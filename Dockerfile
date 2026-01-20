@@ -46,6 +46,7 @@ WORKDIR /opt/mentator-llm-service
 COPY --from=builder /build/distjs ./distjs
 COPY --from=builder /build/node_modules ./node_modules
 COPY --from=builder /build/package.json ./package.json
+COPY --from=builder /build/src/static ./src/static
 
 # Copy entrypoint script
 COPY start-docker.sh /opt/mentator-llm-service/start-docker.sh
