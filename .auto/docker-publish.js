@@ -101,7 +101,7 @@ try {
 	console.log(`✓ Local image found: ${localImageName}:latest`)
 } catch {
 	console.error(`✗ Local image not found: ${localImageName}:latest`)
-	console.error('  Please build the image first with: node .auto/build-docker.js')
+	console.error('  Please build the image first with: node .auto/docker-build.js')
 	process.exit(1)
 }
 

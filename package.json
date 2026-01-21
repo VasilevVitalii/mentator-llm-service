@@ -13,8 +13,8 @@
     },
     "scripts": {
         "buildjs": "node_modules/.bin/tsc --outDir distjs && tsc-esm-fix distjs",
-        "docker:build": "node .auto/build-docker.js",
-        "docker:publish": "node .auto/publish-docker.js"
+        "docker:build": "node .auto/docker-build.js",
+        "docker:publish": "node .auto/docker-publish.js"
     },
     "dependencies": {
         "@fastify/static": "^9.0.0",

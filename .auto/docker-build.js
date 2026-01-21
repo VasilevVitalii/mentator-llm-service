@@ -133,5 +133,5 @@ console.log(`  docker run --rm --gpus=all -v $(pwd)/data:/opt/mentator-llm-servi
 console.log(`\nWith AMD GPU:`)
 console.log(`  docker run --rm --device /dev/kfd --device /dev/dri -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 ${IMAGE_NAME}:latest`)
 console.log(`\nTo publish to Docker Hub:`)
-console.log(`  node .auto/publish-docker.js`)
+console.log(`  node .auto/docker-publish.js`)
 console.log()
