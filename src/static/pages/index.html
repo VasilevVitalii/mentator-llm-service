@@ -73,9 +73,8 @@
 
                 <h3>Getting Started</h3>
                 <p>
-                    The service comes with a pre-installed <strong>qwen2.5-0.5b-instruct-q8_0.gguf</strong> model,
-                    ready to use out of the box for demonstrating basic capabilities. For production use and better quality results,
-                    we recommend downloading more powerful models from
+                    The service includes a <strong>default GGUF model</strong> ready to use out of the box for testing and demonstrating basic capabilities.
+                    For production use and better quality results, we recommend downloading more powerful models from
                     <a href="https://huggingface.co/models?library=gguf" target="_blank" rel="noopener">Hugging Face</a>
                     (such as <a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener">Qwen2.5-7B-Instruct</a>
                     or <a href="https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF" target="_blank" rel="noopener">Llama-3.1-8B-Instruct</a>)
@@ -95,41 +94,27 @@
 
                 <div class="example-section">
                     <h4>Example 1: Using the Chat Interface</h4>
-                    <ol>
-                        <li>Go to the <a href="/chat">/chat</a> page</li>
-                        <li>Select your model from the dropdown</li>
-                        <li>Paste the story above into the "User Prompt" field</li>
-                        <li>Add the following text to the beginning of the field <em>"Get all people (name, age, etc.) from this text:"</em></li>
-                        <li>Click button "FORMAT" -> enable "use grammar" and paste:
-<pre>{
-  "type": "array",
-  "items": {
-    "type": "object",
-    "properties": {
-      "name": { "type": "string" },
-      "age": { "type": "integer" },
-      "sex": { "type": "string", "enum": ["male", "female"] },
-      "hobby": { "type": "string" }
-    },
-    "required": ["name", "age", "sex"]
-  }
-}</pre>
-                        </li>
-                        <li>Close modal window (button "OK")</li>
-                        <li>Click button "OPTIONS" -> click button "SET EXAMPLE FOR JSON" -> close modal window (button "OK")</li>
-                        <li>Click "Send" and receive a <strong>guaranteed valid JSON array</strong> of people!</li>
-                    </ol>
+                    <p>
+                        <button @click="openChatWithExample" class="example-button">
+                            Open Chat with Pre-filled Example
+                        </button>
+                    </p>
+                    <p>
+                        This will open the chat interface with the story above and all necessary settings configured:
+                        JSON Schema for structured output and optimized parameters for JSON generation.
+                        Just select a model and click "Send"!
+                    </p>
                 </div>
 
                 <div class="example-section">
                     <h4>Example 2: Using the API (POST /prompt)</h4>
-                    <p>Send a POST request to <code>/prompt</code>:</p>
+                    <p>Send a POST request to <code>/prompt</code> (replace <code>your-model-name</code> with the actual model filename from <a href="/stat">/stat</a> page (incl. ext '.def')):</p>
 <pre>curl -X POST http://127.0.0.1:19777/prompt \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "qwen2.5-0.5b-instruct-q8_0.gguf",
+    "model": "your-model-name",
     "message": {
-      "user": "Get all peoples (name, age, ext) from this text: \nI am Bob, I am 9 years old and I live on Sunny Street. \nMy friend Diana lives across from me, she is 8 years old and does gymnastics. \nA little further away lives my friend John, he is a year older than me. \nWe like to play tennis with him. \nWe ask Mr. Smith to judge our game. \nHe is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us. "
+      "user": "Get all peoples (name, age, ext) from this text: \nI am Bob, I am 9 years old and I live on Sunny Street.\nMy friend Diana lives across from me, she is 8 years old and does gymnastics.\nA little further away lives my friend John, he is a year older than me. We like to play tennis with him.\nWe ask Mr. Smith to judge our game. He is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us."
     },
     "durationMsec": 3600000,
     "options": {
@@ -226,6 +211,58 @@
                     .catch(err => {
                         console.error('Failed to load version:', err)
                     })
+            },
+            methods: {
+                openChatWithExample() {
+                    const exampleData = {
+                        messageType: 'user',
+                        messageUser: `Get all people (name, age, etc.) from this text:
+I am Bob, I am 9 years old and I live on Sunny Street.
+My friend Diana lives across from me, she is 8 years old and does gymnastics.
+A little further away lives my friend John, he is a year older than me. We like to play tennis with him.
+We ask Mr. Smith to judge our game. He is a former tennis referee. And although he is already 92 years old, he still loves his former job and is happy to help us.`,
+                        format: {
+                            useGrammar: true,
+                            jsonSchema: {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'name': { 'type': 'string' },
+                                        'age': { 'type': 'integer' },
+                                        'sex': { 'type': 'string', 'enum': [ 'male', 'female' ] },
+                                        'hobby': { 'type': 'string' }
+                                    },
+                                    'required': [ 'name', 'age', 'sex' ]
+                                }
+                            }
+                        },
+                        options: {
+                            temperature: 0.0,
+                            topP: 0.1,
+                            topK: 10,
+                            minP: 0.0,
+                            maxTokens: 4096,
+                            repeatPenalty: 1.0,
+                            repeatPenaltyNum: 0,
+                            presencePenalty: 0.0,
+                            frequencyPenalty: 0.0,
+                            mirostat: 0,
+                            mirostatTau: 5.0,
+                            mirostatEta: 0.1,
+                            penalizeNewline: false,
+                            stopSequences: [],
+                            trimWhitespace: true,
+                            tokenBias: {},
+                            evaluationPriority: 5,
+                            contextShiftSize: 0,
+                            disableContextShift: false
+                        }
+                    }
+
+                    const encoded = encodeURIComponent(JSON.stringify(exampleData))
+                    window.open(`/chat?example=${encoded}`, '_blank')
+                }
             }
         }).mount('#app')
     </script>

@@ -418,7 +418,7 @@ node distjs/index.js --conf-use /path/to/config.jsonc
 
 ## Docker Support
 
-*Docker support is planned. See [todo.md](todo.md) for roadmap.*
+For Docker installation and usage instructions, see [docker.md](docker.md).
 
 ## Troubleshooting
 

@@ -57,6 +57,16 @@
             background-color: var(--b-warn2);
             border-color: var(--b-warn1);
         }
+        .stat-row-value-link {
+            font-weight: bold;
+            color: var(--b-main1);
+            text-align: right;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .stat-row-value-link:hover {
+            color: #007d7d;
+        }
     </style>
 </head>
 <body>
@@ -89,24 +99,54 @@
                     </div>
                 </div>
 
+                <!-- GPU Info -->
+                <div class="stat-widget">
+                    <h3>gpu info</h3>
+                    <div v-if="gpuInfo">
+                        <div class="stat-row">
+                            <span class="stat-row-label">type</span>
+                            <span class="stat-row-value">{{ gpuInfo.type }}</span>
+                        </div>
+                        <div v-if="gpuInfo.device" class="stat-row">
+                            <span class="stat-row-label">device</span>
+                            <span class="stat-row-value">{{ gpuInfo.device }}</span>
+                        </div>
+                        <div v-if="gpuInfo.totalVramMb !== null" class="stat-row">
+                            <span class="stat-row-label">total vram</span>
+                            <span class="stat-row-value">{{ gpuInfo.totalVramMb }} mb</span>
+                        </div>
+                        <div v-if="gpuInfo.usedVramMb !== null" class="stat-row">
+                            <span class="stat-row-label">used vram</span>
+                            <span class="stat-row-value">{{ gpuInfo.usedVramMb }} mb</span>
+                        </div>
+                    </div>
+                    <div v-else class="stat-label">gpu info unavailable</div>
+                </div>
+
                 <!-- Current Model -->
                 <div class="stat-widget">
                     <h3>current model</h3>
-                    <div v-if="currentModel">
+                    <div>
                         <div class="stat-row">
-                            <span class="stat-row-label">name</span>
-                            <span class="stat-row-value">{{ currentModel.name }}</span>
+                            <span class="stat-row-label">count models</span>
+                            <span class="stat-row-value-link" @click="onModelsClick">{{ modelsCount }}</span>
                         </div>
-                        <div class="stat-row">
-                            <span class="stat-row-label">size</span>
-                            <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
+                        <div v-if="currentModel">
+                            <div class="stat-row">
+                                <span class="stat-row-label">name</span>
+                                <span class="stat-row-value">{{ currentModel.name }}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-row-label">size</span>
+                                <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-row-label">loaded at</span>
+                                <span class="stat-row-value">{{ currentModel.loadTime }}</span>
+                            </div>
                         </div>
-                        <div class="stat-row">
-                            <span class="stat-row-label">loaded at</span>
-                            <span class="stat-row-value">{{ currentModel.loadTime }}</span>
-                        </div>
+                        <div v-else class="stat-label">no model loaded</div>
                     </div>
-                    <div v-else class="stat-label">no model loaded</div>
                 </div>
 
                 <!-- System Resources -->
@@ -198,6 +238,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- Models Modal -->
+        <div v-if="modelsModalOpen" class="modal-backdrop" @click.self="onModelsClose" @keydown.esc="onModelsClose">
+            <div class="modal-window" role="dialog" aria-labelledby="models-modal-title" aria-modal="true">
+                <h2 id="models-modal-title" class="modal-title">Available Models</h2>
+
+                <div class="modal-form-group">
+                    <div v-if="models.length > 0" style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+                        <div v-for="(model, index) in models" :key="model.name" style="margin-bottom: 8px;">
+                            {{ formatModelDisplay(model) }}
+                        </div>
+                    </div>
+                    <div v-else style="color: #666; font-size: 13px;">
+                        No models available
+                    </div>
+                </div>
+
+                <div class="modal-controls">
+                    <div class="modal-left-controls"></div>
+                    <div class="modal-right-controls">
+                        <button class="form-button width-120" @click="onModelsClose">close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/lib/vue.global.prod.js"></script>
@@ -214,6 +279,7 @@
                     serverStartTimestamp: 0,
                     serverUptime: '',
                     currentModel: null,
+                    gpuInfo: null,
                     memoryUsageMb: 0,
                     memoryHeapMb: 0,
                     memoryExternalMb: 0,
@@ -247,6 +313,13 @@
                     },
                     pollInterval: null,
                     uptimeInterval: null,
+                    models: [],
+                    modelsModalOpen: false,
+                }
+            },
+            computed: {
+                modelsCount() {
+                    return this.models.length
                 }
             },
             mounted() {
@@ -260,6 +333,9 @@
                         console.error('Failed to load version:', err)
                     })
 
+                // Load models
+                this.loadModels()
+
                 // Load initial statistics
                 this.loadStatistics()
 
@@ -272,6 +348,9 @@
                 this.uptimeInterval = setInterval(() => {
                     this.updateUptime()
                 }, 1000)
+
+                // Handle ESC key globally
+                document.addEventListener('keydown', this.handleEscKey)
             },
             beforeUnmount() {
                 if (this.pollInterval) {
@@ -280,8 +359,41 @@
                 if (this.uptimeInterval) {
                     clearInterval(this.uptimeInterval)
                 }
+                document.removeEventListener('keydown', this.handleEscKey)
             },
             methods: {
+                async loadModels() {
+                    try {
+                        const response = await fetch('/state/models')
+                        const data = await response.json()
+
+                        // Sort models: 1) by size (ascending), 2) by name (alphabetically)
+                        this.models = (data.models || []).sort((a, b) => {
+                            if (a.sizeKb !== b.sizeKb) {
+                                return a.sizeKb - b.sizeKb
+                            }
+                            return a.name.localeCompare(b.name)
+                        })
+                    } catch (err) {
+                        console.error('Failed to load models:', err)
+                        this.models = []
+                    }
+                },
+                formatModelDisplay(model) {
+                    const sizeMb = Math.ceil(model.sizeKb / 1024)
+                    return `${model.name} (${sizeMb} MB)`
+                },
+                onModelsClick() {
+                    this.modelsModalOpen = true
+                },
+                onModelsClose() {
+                    this.modelsModalOpen = false
+                },
+                handleEscKey(e) {
+                    if (e.key === 'Escape' && this.modelsModalOpen) {
+                        this.onModelsClose()
+                    }
+                },
                 loadStatistics() {
                     fetch('/state')
                         .then(res => {
@@ -306,6 +418,9 @@
                             } else {
                                 this.currentModel = null
                             }
+
+                            // GPU info
+                            this.gpuInfo = data.gpuInfo || null
 
                             // System resources
                             this.memoryUsageMb = data.memoryUsageMb

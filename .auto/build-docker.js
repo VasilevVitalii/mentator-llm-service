@@ -9,10 +9,43 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const PROJECT_ROOT = join(__dirname, '..')
 
-// Configuration
-const MODEL_SOURCE_PATH = '/home/vitalii/GGUF/qwen2.5-0.5b-instruct-q8_0.gguf'
+// Load .env file if exists
+function loadEnv() {
+	const envPath = join(PROJECT_ROOT, '.env')
+	if (existsSync(envPath)) {
+		const envContent = readFileSync(envPath, 'utf-8')
+		envContent.split('\n').forEach((line) => {
+			line = line.trim()
+			if (line && !line.startsWith('#')) {
+				const [key, ...valueParts] = line.split('=')
+				if (key && valueParts.length > 0) {
+					const value = valueParts.join('=').trim()
+					// Only set if not already set in environment
+					if (!process.env[key]) {
+						process.env[key] = value
+					}
+				}
+			}
+		})
+		console.log('✓ Loaded configuration from .env file')
+	}
+}
+
+loadEnv()
+
+// Configuration (must be set via environment variables or .env file)
+const MODEL_SOURCE_PATH = process.env.DOCKER_DEFAULT_MODEL
 const MODEL_DEST_DIR = join(PROJECT_ROOT, 'default-models')
-const IMAGE_NAME = 'mentator-llm-service'
+const IMAGE_NAME = process.env.DOCKER_IMAGE_NAME || 'mentator-llm-service'
+
+// Validate required configuration
+if (!MODEL_SOURCE_PATH) {
+	console.error('✗ Error: DOCKER_DEFAULT_MODEL is not set')
+	console.error('  Please create a .env file with:')
+	console.error('    DOCKER_DEFAULT_MODEL=/path/to/your/model.gguf')
+	console.error('  Or set it as an environment variable.')
+	process.exit(1)
+}
 
 // Parse command line arguments
 const args = process.argv.slice(2)

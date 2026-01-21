@@ -9,6 +9,7 @@ import { ServerStats } from '../../../serverStats'
 import { QueuePrompt } from '../../../queue'
 import { Db } from '../../../db'
 import { Log } from '../../../log'
+import { GetGpuInfo } from '../../post/prompt/additional/getGpuInfo'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.get<{
@@ -39,17 +40,19 @@ export async function controller(fastify: FastifyInstance) {
 				const THREE_HOURS = 3 * 60 * 60 * 1000
 				const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
-				// Get statistics for each interval
-				const [stats1h, stats3h, stats24h] = await Promise.all([
+				// Get statistics for each interval and GPU info in parallel
+				const [stats1h, stats3h, stats24h, gpuInfo] = await Promise.all([
 					db.getStatistics(ONE_HOUR),
 					db.getStatistics(THREE_HOURS),
 					db.getStatistics(TWENTY_FOUR_HOURS),
+					GetGpuInfo(),
 				])
 
 				const response: TGetStateResponse = {
 					serverStartTimestamp: serverStats.getServerStartTimestamp(),
 					serverUptimeSeconds: serverStats.getServerUptimeSeconds(),
 					currentModel: serverStats.getCurrentModel(),
+					gpuInfo,
 					memoryUsageMb: serverStats.getMemoryUsageMb(),
 					memoryHeapMb: serverStats.getMemoryHeapMb(),
 					memoryExternalMb: serverStats.getMemoryExternalMb(),

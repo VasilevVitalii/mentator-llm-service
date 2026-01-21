@@ -327,6 +327,9 @@
 
                 // Load messages from localStorage
                 this.loadMessages()
+
+                // Load example from URL if present
+                this.loadExampleFromUrl()
             },
             beforeUnmount() {
                 document.removeEventListener('mousemove', this.onDrag)
@@ -382,7 +385,14 @@
                     try {
                         const response = await fetch('/state/models')
                         const data = await response.json()
-                        this.models = data.models || []
+
+                        // Sort models: 1) by size (ascending), 2) by name (alphabetically)
+                        this.models = (data.models || []).sort((a, b) => {
+                            if (a.sizeKb !== b.sizeKb) {
+                                return a.sizeKb - b.sizeKb
+                            }
+                            return a.name.localeCompare(b.name)
+                        })
 
                         // Load saved model from localStorage
                         const savedModel = localStorage.getItem('chat.model')
@@ -1132,6 +1142,54 @@
                         } else if (this.optionsModalOpen) {
                             this.onOptionsCancel()
                         }
+                    }
+                },
+                loadExampleFromUrl() {
+                    const params = new URLSearchParams(window.location.search)
+                    const exampleData = params.get('example')
+
+                    if (!exampleData) return
+
+                    try {
+                        const decoded = decodeURIComponent(exampleData)
+                        const data = JSON.parse(decoded)
+
+                        // Set message type and content
+                        if (data.messageType) {
+                            this.messageType = data.messageType
+                        }
+                        if (data.messageUser) {
+                            this.messageUser = data.messageUser
+                            localStorage.setItem('message.user', this.messageUser)
+                        }
+                        if (data.messageSystem) {
+                            this.messageSystem = data.messageSystem
+                            localStorage.setItem('message.system', this.messageSystem)
+                        }
+
+                        // Set format (JSON Schema) and save to localStorage
+                        if (data.format) {
+                            this.formatUseGrammar = data.format.useGrammar || false
+                            if (data.format.jsonSchema) {
+                                this.formatSchema = JSON.stringify(data.format.jsonSchema, null, 2)
+                            }
+                            const formatSettings = {
+                                schema: this.formatSchema,
+                                useGrammar: this.formatUseGrammar
+                            }
+                            localStorage.setItem('format', JSON.stringify(formatSettings))
+                        }
+
+                        // Set options and save to localStorage
+                        if (data.options) {
+                            this.optionsJson = JSON.stringify(data.options, null, 2)
+                            localStorage.setItem('options', this.optionsJson)
+                        }
+
+                        // Clear URL parameter to avoid reloading on refresh
+                        window.history.replaceState({}, document.title, window.location.pathname)
+                    } catch (err) {
+                        console.error('Failed to load example from URL:', err)
                     }
                 }
             }

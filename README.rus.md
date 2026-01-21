@@ -418,7 +418,7 @@ node distjs/index.js --conf-use /путь/к/config.jsonc
 
 ## Поддержка Docker
 
-*Поддержка Docker планируется. См. [todo.md](todo.md) для дорожной карты.*
+Для инструкций по установке и использованию Docker, см. [docker.md](docker.md).
 
 ## Решение проблем
 

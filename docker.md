@@ -1,259 +1,117 @@
-# Техническое задание: Docker-контейнер для Mentator LLM Service
+# Docker Build Instructions
 
-## Цель
-Создать универсальный Docker-контейнер, который автоматически определяет доступное оборудование (NVIDIA GPU / AMD GPU / CPU) и использует наилучший вариант для запуска LLM-моделей.
+## Building the Image
 
-## Приоритет выбора железа
-```
-NVIDIA GPU (CUDA) → AMD GPU (ROCm) → CPU
-```
+**Important**: The Docker image is built as a **universal image** that supports NVIDIA GPU (CUDA), AMD GPU (ROCm), and CPU modes. No need to build separate images for different GPU types.
 
-## Требования
+### Prerequisites
 
-### 1. Структура файлов в контейнере
-```
-/opt/mentator-llm-service/
-  ├── default-models/                   # Дефолтные модели (в образе, read-only)
-  │   └── qwen2.5-0.5b-instruct-q8_0.gguf
-  └── data/                             # Volume для монтирования (read-write)
-      ├── mentator-llm-service.conf.jsonc  # Конфигурация пользователя
-      ├── mentator-llm-service.db          # SQLite база данных
-      └── models/                          # Модели пользователя
-          └── *.gguf
-```
+- Docker installed and running
+- Node.js 20+ (for running the build script)
+- A GGUF model file (will be included in the Docker image as default model)
 
-**Монтируется**: `/opt/mentator-llm-service/data`
+### Build Steps
 
-**Пути в конфигурации** (автоматически устанавливаются при запуске с `--conf-docker`):
-- `port`: 19777 (фиксированно)
-- `dbFile`: `/opt/mentator-llm-service/data/mentator-llm-service.db` (фиксированно)
-- `modelDir`: `/opt/mentator-llm-service/data/models` (фиксированно)
+1. **Configure build:**
 
-### 2. Поддержка GPU
-- **NVIDIA GPU**: поддержка CUDA (будет протестировано)
-- **AMD GPU**: поддержка ROCm (реализация на основе документации, без реального тестирования)
-- **CPU**: fallback режим без GPU (будет протестировано)
-- Автоматическое определение доступного железа при запуске контейнера
-- Не требуется ручная настройка со стороны пользователя
+   Create a `.env` file in the project root:
+   ```bash
+   cp .env.example .env
+   ```
 
-### 3. node-llama-cpp
-- Должны быть установлены все необходимые зависимости для работы node-llama-cpp
-- Поддержка работы с CUDA, ROCm и CPU в одной сборке
-- **Гибридный подход**: использовать prebuild бинарники где возможно, компиляцию где необходимо
-  - Сначала попытаться использовать официальные prebuild версии
-  - Если prebuild не поддерживают нужную функциональность — компилировать вручную
-  - Приоритет: скорость сборки при сохранении универсальности
+   Edit `.env` and set required parameters:
+   ```bash
+   # Path to the default GGUF model that will be included in the Docker image (REQUIRED)
+   DOCKER_DEFAULT_MODEL=/path/to/your/model.gguf
 
-### 4. Точка запуска
-- Приложение: `distjs/index.js` (скомпилированный из `src/index.ts`)
-- Режим запуска: `--conf-docker /opt/mentator-llm-service/data/mentator-llm-service.conf.jsonc`
-- Автоматическое создание конфига при первом запуске (если файла нет)
-- Фиксированные пути (port, dbFile, modelDir) устанавливаются программно
-- Entrypoint скрипт для автоопределения железа и установки переменных окружения
+   # Docker image name - optional, defaults to "mentator-llm-service"
+   DOCKER_IMAGE_NAME=mentator-llm-service
+   ```
 
-### 5. Тестовая модель
-- Тестовая модель `qwen2.5-0.5b-instruct-q8_0.gguf` включается в Docker-образ
-- Модель хранится в образе в `/opt/mentator-llm-service/default-models/`
-- При первом запуске entrypoint скрипт копирует дефолтные модели в `/opt/mentator-llm-service/data/models/` (если там пусто)
-- Пользователь может заменить/добавить свои модели в volume
-- При обновлении образа можно получить новые дефолтные модели
+   **Note**: `DOCKER_DEFAULT_MODEL` is required. The build will fail if not set.
 
-### 6. Build-скрипт
-- Написать скрипт на JavaScript для сборки контейнера
-- Расположение: `.auto/build-docker.js`
-- Добавить команду в `package.json` для запуска скрипта
-- **Функционал скрипта:**
-  - Проверка наличия Docker и его запуск
-  - Копирование тестовой модели из `/home/vitalii/GGUF/qwen2.5-0.5b-instruct-q8_0.gguf` в контекст сборки
-  - Сборка Docker-образа с тегами (latest, version из package.json)
-  - Отображение итогового размера образа
-  - Опционально: публикация в Docker Hub (через флаг или переменную окружения)
+2. **Run the build script:**
+   ```bash
+   npm run docker:build
+   ```
 
-## Архитектурные решения
+   This script will:
+   - Check if Docker is running
+   - Copy the default model into the build context
+   - Build the Docker image with appropriate tags
+   - Display the final image size
 
-### Multi-stage build
-Использовать multi-stage Dockerfile:
+3. **Manual build (alternative):**
+   ```bash
+   # Copy your default model
+   mkdir -p default-models
+   cp /path/to/your/model.gguf default-models/
 
-**Stage 1: Builder**
-- Base image: node:20
-- Установка build-инструментов (cmake, g++, python3)
-- Установка CUDA toolkit (для компиляции)
-- Установка ROCm SDK (для компиляции)
-- Установка npm зависимостей
-- Компиляция node-llama-cpp с поддержкой CUDA и ROCm
-- Сборка TypeScript проекта (`npm run buildjs`)
+   # Build the image
+   docker build -t mentator-llm-service:latest .
+   ```
 
-**Stage 2: Runtime**
-- Base image: node:20-slim
-- Установка только runtime библиотек:
-  - CUDA runtime (без toolkit)
-  - ROCm runtime (без SDK)
-- Копирование из builder:
-  - `distjs/` — собранное приложение
-  - `node_modules/` — зависимости (включая скомпилированный node-llama-cpp)
-  - `package.json`
-- Копирование `start-docker.sh` скрипта
-- Healthcheck для мониторинга состояния сервиса
+## Running the Container
 
-### Entrypoint скрипт
-Создать `start-docker.sh`, который:
-1. Копирует дефолтные модели из `/opt/mentator-llm-service/default-models/` в `/opt/mentator-llm-service/data/models/` если папка пустая
-2. Проверяет наличие NVIDIA GPU (`nvidia-smi`)
-3. Если нет — проверяет AMD GPU (`rocm-smi` или `/dev/kfd`, `/dev/dri`)
-4. Устанавливает переменные окружения для llama.cpp:
-   - `LLAMA_CUDA=1` для NVIDIA
-   - `LLAMA_HIPBLAS=1` для AMD
-   - Ничего для CPU
-5. Выводит в лог информацию о выбранном режиме
-6. Запускает `node distjs/index.js --conf-docker /opt/mentator-llm-service/data/mentator-llm-service.conf.jsonc`
+Choose the appropriate command based on your hardware. The container entrypoint script will detect which GPU devices are available and configure accordingly.
 
-### Healthcheck
-Добавить в Dockerfile проверку работоспособности сервиса:
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:19777/state/version || exit 1
-```
-- Проверяет доступность API каждые 30 секунд
-- Используется эндпоинт `/state/version` (легковесный запрос)
-- Дает 60 секунд на старт (загрузка моделей может занять время)
-- После 3 неудачных проверок контейнер считается нездоровым
+### NVIDIA GPU Mode
 
-### Пример запуска контейнера
+Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed on the host.
 
 ```bash
-# NVIDIA GPU
-docker run --gpus=all \
-  -v /path/to/data:/opt/mentator-llm-service/data \
+docker run --rm --gpus=all \
+  -v /path/to/volume:/opt/mentator-llm-service/data \
   -p 19777:19777 \
-  mentator-llm-service
-
-# AMD GPU
-docker run \
-  --device /dev/kfd \
-  --device /dev/dri \
-  -v /path/to/data:/opt/mentator-llm-service/data \
-  -p 19777:19777 \
-  mentator-llm-service
-
-# CPU only
-docker run \
-  -v /path/to/data:/opt/mentator-llm-service/data \
-  -p 19777:19777 \
-  mentator-llm-service
+  mentator-llm-service:latest
 ```
 
-## Открытые вопросы
+The `--gpus=all` flag exposes NVIDIA GPU devices to the container. The entrypoint script detects them via `nvidia-smi` and sets `LLAMA_CUDA=1`.
 
-### ✅ Вопрос 2: Одновременная поддержка CUDA и ROCm
-**Проблема**: Может ли llama.cpp быть собран с одновременной поддержкой CUDA и ROCm, или нужны отдельные сборки?
+### AMD GPU Mode
 
-**Результаты исследования**:
+```bash
+docker run --rm \
+  --device /dev/kfd --device /dev/dri \
+  -v /path/to/volume:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  mentator-llm-service:latest
+```
 
-Теоретически llama.cpp **может быть собран** с флагами `-DGGML_CUDA=ON` и `-DGGML_HIP=ON` одновременно, но на практике это приводит к серьезным проблемам:
+The `--device` flags expose AMD GPU devices to the container. The entrypoint script detects them via `rocm-smi` or device files and sets `LLAMA_HIPBLAS=1`.
 
-1. **Проблема конфликта символов**: При статической линковке обоих backend'ов возникают коллизии имен функций между `libggml-hip` и `libggml-cuda`, что приводит к "Memory access fault" ошибкам (GitHub Issue #11506).
+### CPU Mode
 
-2. **Только CUDA устройства видны**: Даже при успешной сборке с обоими флагами, результирующий бинарник видит только CUDA устройства, ROCm/HIP устройства не доступны.
+If you don't have a GPU or want to use CPU only:
 
-**Решения**:
+```bash
+docker run --rm \
+  -v /path/to/volume:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  mentator-llm-service:latest
+```
 
-**Вариант 1 (рекомендуемый): Отдельные сборки**
-- Создать два отдельных бинарника: один с `GGML_CUDA=ON`, другой с `GGML_HIP=ON`
-- Entrypoint скрипт выбирает нужный бинарник на основе обнаруженного железа
-- Именно так работает node-llama-cpp (отдельные пакеты для разных backend'ов)
-- ✅ Нет конфликтов символов
-- ✅ Полная функциональность
-- ❌ Больший размер образа
+Without GPU device flags, the container runs in CPU mode.
 
-**Вариант 2 (экспериментальный): Динамическая загрузка backend'ов**
-- Использовать флаг `GGML_BACKEND_DL=ON` для динамической загрузки
-- Собрать CUDA и HIP как отдельные shared libraries
-- Загружать нужный backend во время выполнения
-- ✅ Один бинарник
-- ✅ Избегает конфликтов символов
-- ❌ Более сложная сборка
-- ❌ Требует экспериментальной настройки
+## Volume Structure
 
-**Выбранное решение**: **Вариант 1 - отдельные сборки**
+The `/opt/mentator-llm-service/data` volume contains:
+- `mentator-llm-service.conf.jsonc` - Configuration file (auto-generated on first run)
+- `mentator-llm-service.db` - SQLite database
+- `models/` - GGUF model files
 
-Причины выбора:
-- Проверенный подход (используется в node-llama-cpp)
-- Простота реализации
-- Надежность работы
-- Разница в размере образа приемлема (3-6GB все равно)
+On first run, the default model (`qwen2.5-0.5b-instruct-q8_0.gguf`) is copied to the `models/` directory if it's empty.
 
-**Архитектурное решение**:
-- В builder stage компилируем node-llama-cpp **дважды**: один раз с CUDA, один раз с ROCm
-- Копируем оба варианта в runtime stage
-- Entrypoint скрипт определяет железо и выбирает правильный вариант через переменные окружения или симлинки
+## Additional Options
 
----
+Add `--restart unless-stopped` to automatically restart the container:
+```bash
+docker run --rm --restart unless-stopped --gpus=all \
+  -v /path/to/volume:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  mentator-llm-service:latest
+```
 
-## План реализации
+## Accessing the Service
 
-### Этап 1: Исследование
-- [x] Изучить документацию node-llama-cpp по компиляции с CUDA/ROCm
-- [x] Изучить llama.cpp CMake опции для multi-backend сборки
-- [x] Решить вопрос одновременной поддержки CUDA и ROCm (выбрано: отдельные сборки)
-- [ ] Проверить размеры CUDA runtime и ROCm runtime в Docker
-
-### Этап 2: Прототип Dockerfile
-- [x] Создать базовый Dockerfile с multi-stage build
-- [x] Реализовать builder stage с компиляцией node-llama-cpp
-- [x] Реализовать runtime stage с минимальными зависимостями
-- [x] Добавить healthcheck
-- [ ] Протестировать сборку образа
-
-### Этап 3: Entrypoint и автоопределение
-- [x] Написать `start-docker.sh` с логикой определения GPU
-- [x] Реализовать установку переменных окружения для llama.cpp
-- [x] Добавить информативное логирование о выбранном режиме
-- [ ] Протестировать на CPU и NVIDIA GPU
-
-### Этап 4: Build-скрипт
-- [x] Создать `.auto/build-docker.js`
-- [x] Реализовать функционал сборки образа
-- [x] Добавить команду в `package.json`
-- [x] Документировать использование скрипта (встроено в вывод скрипта)
-
-### Этап 5: Конфигурация и volume
-- [x] Реализовать генерацию дефолтного конфига при первом запуске (уже реализовано в src/index.ts)
-- [x] Настроить монтирование volume (реализовано в Dockerfile)
-- [ ] Проверить работу с моделями из volume
-
-### Этап 6: Документация
-- [ ] Обновить README.md с инструкциями по Docker
-- [ ] Создать примеры docker-compose.yml
-- [ ] Добавить troubleshooting секцию для Docker
-
-### Этап 7: Тестирование
-- [ ] CPU режим
-- [ ] NVIDIA GPU режим
-- [ ] AMD GPU режим - только проверка сборки и наличия ROCm библиотек (реальное тестирование невозможно)
-- [ ] Проверка автопереключения между NVIDIA и CPU режимами
-
-### Этап 8: Оптимизация
-- [ ] Оптимизация размера образа
-- [ ] Кэширование слоев для ускорения пересборки
-- [ ] Документация по настройке производительности
-
-## Примерный размер работы
-- **Исследование**: 4-6 часов
-- **Разработка Dockerfile**: 6-8 часов
-- **Entrypoint и автоматизация**: 3-4 часа
-- **Build-скрипт**: 2-3 часа
-- **Документация**: 2-3 часа
-- **Тестирование и отладка**: 4-6 часов
-- **Итого**: ~20-30 часов работы
-
-## Следующие шаги
-1. ✅ Исследование завершено (вопрос 2 решен)
-2. ✅ Архитектурные решения утверждены
-3. Приступить к реализации Dockerfile
-4. Создать entrypoint скрипт
-5. Создать build-скрипт
-
-Итоговые команды для запуска:
-CPU: docker run --rm -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest
-NVIDIA GPU: docker run --rm --gpus=all -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest
-AMD GPU: docker run --rm --device /dev/kfd --device /dev/dri -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 mentator-llm-service:latest
+Once running, access the web interface at: http://localhost:19777

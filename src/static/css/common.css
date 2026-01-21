@@ -583,3 +583,27 @@ body {
 .example-section ol li {
     margin-bottom: 12px;
 }
+
+.example-button {
+    background-color: var(--b-main1);
+    color: var(--f-main1);
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.example-button:hover {
+    background-color: #007d7d;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+.example-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

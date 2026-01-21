@@ -13,6 +13,15 @@ export const GetStateResponseDto = Type.Object({
 		}),
 		Type.Null(),
 	]),
+	gpuInfo: Type.Union([
+		Type.Object({
+			type: Type.Union([Type.Literal('cuda'), Type.Literal('vulkan'), Type.Literal('metal'), Type.Literal('cpu')]),
+			device: Type.Union([Type.String(), Type.Null()]),
+			totalVramMb: Type.Union([Type.Number(), Type.Null()]),
+			usedVramMb: Type.Union([Type.Number(), Type.Null()]),
+		}),
+		Type.Null(),
+	]),
 	memoryUsageMb: Type.Number(),
 	memoryHeapMb: Type.Number(),
 	memoryExternalMb: Type.Number(),
