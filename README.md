@@ -22,7 +22,6 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **Web UI** - interactive chat interface for testing and experimentation
 - **Request queueing** - automatic handling of concurrent requests to prevent GPU/CPU overload
 - **Flexible configuration** - customizable model parameters, logging, and database settings
-- **TypeScript/Node.js** - modern stack with full type safety
 
 ## Why Use Mentator?
 
@@ -314,7 +313,7 @@ Process a prompt and return structured JSON response.
 **Request body**:
 ```typescript
 {
-  model: string;              // Model name (filename without .gguf)
+  model: string;              // Model name (filename with .gguf)
   message: {
     system?: string;          // Optional system prompt
     user: string;             // User prompt
