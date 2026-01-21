@@ -2,9 +2,16 @@ import minimist from 'minimist'
 import { ConfigDockerGerenateFile, ConfigDockerReadFile, ConfigGerenate, ConfigGerenateFile, ConfigReadFile } from './config'
 import { basename, dirname, resolve } from 'path'
 import { Go } from './go'
-import { VERSION } from '../package-version.js'
 import { fsReadFileSync } from './util/fsReadFile'
 import { fsExistsFileSync } from './util/fsExistsFile'
+import { fileURLToPath } from 'url'
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const packageJsonPath = resolve(__dirname, '../package.json')
+const packageJson = JSON.parse(fsReadFileSync(packageJsonPath))
+const VERSION = packageJson.version || 'unknown'
 
 //TODO в самом конце разработки сервиса убрать из логирования автозапросы страниц (логов, статистики)
 

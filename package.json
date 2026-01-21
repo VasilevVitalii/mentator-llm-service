@@ -12,9 +12,9 @@
         "typescript": "^5.9.3"
     },
     "scripts": {
-        "prebuild": "node .auto/prebuild.js",
-        "buildjs": "npm run prebuild && node_modules/.bin/tsc --outDir distjs && tsc-esm-fix distjs",
-        "docker:build": "node .auto/build-docker.js"
+        "buildjs": "node_modules/.bin/tsc --outDir distjs && tsc-esm-fix distjs",
+        "docker:build": "node .auto/build-docker.js",
+        "docker:publish": "node .auto/publish-docker.js"
     },
     "dependencies": {
         "@fastify/static": "^9.0.0",

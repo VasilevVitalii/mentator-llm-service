@@ -47,9 +47,6 @@ if (!MODEL_SOURCE_PATH) {
 	process.exit(1)
 }
 
-// Parse command line arguments
-const args = process.argv.slice(2)
-const shouldPublish = args.includes('--publish') || process.env.DOCKER_PUBLISH === 'true'
 
 function run(command, options = {}) {
 	console.log(`\n$ ${command}`)
@@ -127,18 +124,6 @@ console.log(`  Tags: ${tags.join(', ')}`)
 console.log('\nStep 4: Image information...')
 run(`docker images ${IMAGE_NAME} --format "table {{.Repository}}:{{.Tag}}\\t{{.Size}}\\t{{.CreatedAt}}"`)
 
-// Step 5: Publish (optional)
-if (shouldPublish) {
-	console.log('\nStep 5: Publishing to Docker Hub...')
-	console.log('⚠ Publishing is not implemented yet.')
-	console.log('  To publish manually, run:')
-	tags.forEach((tag) => {
-		console.log(`    docker push ${tag}`)
-	})
-} else {
-	console.log('\nℹ Skip publishing (use --publish flag or DOCKER_PUBLISH=true to publish)')
-}
-
 // Final summary
 console.log('\n=== Build Complete ===')
 console.log(`\nTo run the container:`)
@@ -147,4 +132,6 @@ console.log(`\nWith NVIDIA GPU:`)
 console.log(`  docker run --rm --gpus=all -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 ${IMAGE_NAME}:latest`)
 console.log(`\nWith AMD GPU:`)
 console.log(`  docker run --rm --device /dev/kfd --device /dev/dri -v $(pwd)/data:/opt/mentator-llm-service/data -p 19777:19777 ${IMAGE_NAME}:latest`)
+console.log(`\nTo publish to Docker Hub:`)
+console.log(`  node .auto/publish-docker.js`)
 console.log()
