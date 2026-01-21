@@ -25,7 +25,7 @@ export async function GetGpuInfo(): Promise<TGpuInfo | null> {
 		let device: string | null = null
 		try {
 			const deviceNames = await llama.getGpuDeviceNames()
-			device = deviceNames.length > 0 ? deviceNames[0] : null
+			device = deviceNames.length > 0 ? deviceNames[0] ?? null : null
 		} catch (err) {
 			// GPU device names might not be available for CPU mode
 			device = null

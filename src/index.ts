@@ -10,8 +10,8 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const packageJsonPath = resolve(__dirname, '../package.json')
-const packageJson = JSON.parse(fsReadFileSync(packageJsonPath))
-const VERSION = packageJson.version || 'unknown'
+const packageJsonResult = fsReadFileSync(packageJsonPath, '')
+const VERSION = packageJsonResult.ok ? JSON.parse(packageJsonResult.result).version || 'unknown' : 'unknown'
 
 //TODO в самом конце разработки сервиса убрать из логирования автозапросы страниц (логов, статистики)
 
