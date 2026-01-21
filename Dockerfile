@@ -24,9 +24,6 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build TypeScript project
-RUN npm run buildjs
-
 # Stage 2: Runtime
 FROM node:20-slim
 
@@ -42,11 +39,11 @@ RUN mkdir -p /opt/mentator-llm-service/default-models \
 
 WORKDIR /opt/mentator-llm-service
 
-# Copy built application from builder
-COPY --from=builder /build/distjs ./distjs
+# Copy application from builder (TypeScript source + node_modules)
+COPY --from=builder /build/src ./src
 COPY --from=builder /build/node_modules ./node_modules
 COPY --from=builder /build/package.json ./package.json
-COPY --from=builder /build/src/static ./src/static
+COPY --from=builder /build/tsconfig.json ./tsconfig.json
 
 # Copy entrypoint script
 COPY start-docker.sh /opt/mentator-llm-service/start-docker.sh
