@@ -32,6 +32,7 @@ if command -v nvidia-smi &> /dev/null; then
     if nvidia-smi &> /dev/null; then
         GPU_BACKEND="cuda"
         export LLAMA_CUDA=1
+        export NODE_LLAMA_CPP_GPU=cuda
         echo "✓ NVIDIA GPU detected"
         nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | while read line; do
             echo "  GPU: $line"
@@ -46,6 +47,7 @@ if [ "$GPU_BACKEND" = "cpu" ]; then
         if rocm-smi &> /dev/null; then
             GPU_BACKEND="rocm"
             export LLAMA_HIPBLAS=1
+            export NODE_LLAMA_CPP_GPU=vulkan
             echo "✓ AMD GPU detected (ROCm)"
             rocm-smi --showproductname || echo "  AMD GPU present"
         fi
@@ -53,6 +55,7 @@ if [ "$GPU_BACKEND" = "cpu" ]; then
     elif [ -e /dev/kfd ] && [ -e /dev/dri ]; then
         GPU_BACKEND="rocm"
         export LLAMA_HIPBLAS=1
+        export NODE_LLAMA_CPP_GPU=vulkan
         echo "✓ AMD GPU detected (device files present)"
     fi
 fi

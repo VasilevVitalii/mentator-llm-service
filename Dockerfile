@@ -18,14 +18,15 @@ WORKDIR /build
 COPY package.json package-lock.json* ./
 
 # Install npm dependencies
-# node-llama-cpp will download/compile binaries as needed
+# node-llama-cpp will download prebuilt binaries (including CUDA)
 RUN npm install
 
 # Copy source code
 COPY . .
 
 # Stage 2: Runtime
-FROM node:20-slim
+# Use full node image (not slim) for compatibility with node-llama-cpp prebuilt binaries
+FROM node:20
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
