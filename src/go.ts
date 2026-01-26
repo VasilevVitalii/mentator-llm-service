@@ -10,6 +10,8 @@ import { Db } from './db'
 import { Log } from './log'
 import { ServerStats } from './serverStats'
 import { join } from 'path'
+import { GetLama } from './api/post/prompt/additional/getLama'
+import { GetGpuInfo } from './api/post/prompt/additional/getGpuInfo'
 
 // const ALLOW_LOG_API_PROMPT = [
 // 	{method: 'POST', url: }
@@ -31,6 +33,20 @@ export async function Go(config: TConfig): Promise<void> {
 		Log().debug('APP','START')
 		ModelManager.init(config.modelDir)
 		ModelManager().scanModelDirStart(60000)
+
+		// Initialize Llama at startup
+		const llamaResult = await GetLama()
+		if (!llamaResult.ok) {
+			Log().error('APP', 'Failed to initialize Llama', llamaResult.error)
+		} else {
+			Log().debug('APP', 'Llama initialized successfully')
+			const gpuInfo = await GetGpuInfo()
+			if (gpuInfo) {
+				Log().debug('APP', `GPU: type=${gpuInfo.type}, device=${gpuInfo.device || 'unknown'}, VRAM total=${gpuInfo.totalVramMb || 'N/A'}MB`)
+			} else {
+				Log().debug('APP', 'GPU info not available')
+			}
+		}
 
 		fastify = Fastify({
 			logger: false,
