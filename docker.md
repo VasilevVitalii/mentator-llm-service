@@ -2,7 +2,7 @@
 
 ## Building the Image
 
-**Important**: The Docker image is built as a **universal image** that supports NVIDIA GPU (CUDA), AMD GPU (ROCm), and CPU modes. No need to build separate images for different GPU types.
+**⚠️ IMPORTANT**: The Docker image supports **NVIDIA GPU (CUDA) and CPU modes only**. AMD GPU is NOT supported in the Docker version. For AMD GPU support, run the service directly on the host system.
 
 ### Prerequisites
 
@@ -53,7 +53,7 @@
 
 ## Running the Container
 
-Choose the appropriate command based on your hardware. The container entrypoint script will detect which GPU devices are available and configure accordingly.
+Choose the appropriate command based on your hardware:
 
 ### NVIDIA GPU Mode
 
@@ -67,18 +67,6 @@ docker run --rm --gpus=all \
 ```
 
 The `--gpus=all` flag exposes NVIDIA GPU devices to the container. The entrypoint script detects them via `nvidia-smi` and sets `LLAMA_CUDA=1`.
-
-### AMD GPU Mode
-
-```bash
-docker run --rm \
-  --device /dev/kfd --device /dev/dri \
-  -v /path/to/volume:/opt/mentator-llm-service/data \
-  -p 19777:19777 \
-  mentator-llm-service:latest
-```
-
-The `--device` flags expose AMD GPU devices to the container. The entrypoint script detects them via `rocm-smi` or device files and sets `LLAMA_HIPBLAS=1`.
 
 ### CPU Mode
 
