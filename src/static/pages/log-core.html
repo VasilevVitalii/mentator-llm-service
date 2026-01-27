@@ -272,8 +272,8 @@
                 displayLogs() {
                     // Filter by errors if needed
                     let filtered = this.errorsOnly ? this.logs.filter(log => log.kind === 'error') : this.logs
-                    // Display in reverse order (Z->A by id)
-                    return [...filtered].reverse()
+                    // Always sort by id DESC (newest first) to maintain correct order
+                    return [...filtered].sort((a, b) => b.id - a.id)
                 },
                 lastLogId() {
                     if (this.logs.length === 0) return 0

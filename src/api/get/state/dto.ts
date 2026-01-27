@@ -26,6 +26,7 @@ export const GetStateResponseDto = Type.Object({
 	memoryHeapMb: Type.Number(),
 	memoryExternalMb: Type.Number(),
 	queueSize: Type.Number(),
+	savePromptEnabled: Type.Boolean(),
 	stats1h: Type.Object({
 		total: Type.Number(),
 		success: Type.Number(),

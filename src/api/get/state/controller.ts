@@ -57,6 +57,7 @@ export async function controller(fastify: FastifyInstance) {
 					memoryHeapMb: serverStats.getMemoryHeapMb(),
 					memoryExternalMb: serverStats.getMemoryExternalMb(),
 					queueSize: queue.getSize(),
+					savePromptEnabled: req.server.appConfig.log.savePrompt,
 					stats1h,
 					stats3h,
 					stats24h,

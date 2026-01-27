@@ -301,9 +301,14 @@
 
                 <!-- Bottom section -->
                 <div class="logs-bottom-section">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="errors-only" v-model="errorsOnly" />
-                        <label for="errors-only">errors only</label>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="errors-only" v-model="errorsOnly" />
+                            <label for="errors-only">errors only</label>
+                        </div>
+                        <div v-if="!savePromptEnabled" style="color: #ff6b35; font-size: 12px; font-weight: bold;">
+                            This feature is unavailable because log.savePrompt is set to false in the configuration.
+                        </div>
                     </div>
                     <div class="logs-bottom-buttons">
                         <button class="form-button width-220" :disabled="logs.length === 0" @click="onCopyCurrentClick">to clipboard current</button>
@@ -363,6 +368,7 @@
             data() {
                 return {
                     version: '0.0.0',
+                    savePromptEnabled: false,
                     logs: [],
                     follow: true,
                     errorsOnly: false,
@@ -385,6 +391,7 @@
             },
             async mounted() {
                 await this.fetchVersion()
+                await this.fetchConfig()
                 await this.fetchLogs()
                 this.pollInterval = setInterval(() => {
                     this.fetchLogs()
@@ -403,6 +410,15 @@
                         this.version = data.version
                     } catch (err) {
                         console.error('Failed to fetch version:', err)
+                    }
+                },
+                async fetchConfig() {
+                    try {
+                        const res = await fetch('/state')
+                        const data = await res.json()
+                        this.savePromptEnabled = data.savePromptEnabled
+                    } catch (err) {
+                        console.error('Failed to fetch config:', err)
                     }
                 },
                 async fetchLogs() {

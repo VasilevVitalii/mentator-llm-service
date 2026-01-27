@@ -168,8 +168,16 @@
                     </div>
                 </div>
 
+                <!-- Request Statistics Notice -->
+                <div v-if="!savePromptEnabled" class="stat-widget" style="background-color: #fffbe6; border-color: #ffa940;">
+                    <h3>request stat disabled</h3>
+                    <div style="color: #666; font-size: 13px; line-height: 1.6;">
+                        This feature is unavailable because <strong>log.savePrompt</strong> is set to <strong>false</strong> in the configuration.
+                    </div>
+                </div>
+
                 <!-- Request Statistics - Last 1 hour -->
-                <div class="stat-widget" :class="{ 'stat-widget-warning': stats1h.failed > 0 }">
+                <div v-if="savePromptEnabled" class="stat-widget" :class="{ 'stat-widget-warning': stats1h.failed > 0 }">
                     <h3>requests (last 1 hour)</h3>
                     <div>
                         <div class="stat-row">
@@ -192,7 +200,7 @@
                 </div>
 
                 <!-- Request Statistics - Last 3 hours -->
-                <div class="stat-widget" :class="{ 'stat-widget-warning': stats3h.failed > 0 }">
+                <div v-if="savePromptEnabled" class="stat-widget" :class="{ 'stat-widget-warning': stats3h.failed > 0 }">
                     <h3>requests (last 3 hours)</h3>
                     <div>
                         <div class="stat-row">
@@ -215,7 +223,7 @@
                 </div>
 
                 <!-- Request Statistics - Last 24 hours -->
-                <div class="stat-widget" :class="{ 'stat-widget-warning': stats24h.failed > 0 }">
+                <div v-if="savePromptEnabled" class="stat-widget" :class="{ 'stat-widget-warning': stats24h.failed > 0 }">
                     <h3>requests (last 24 hours)</h3>
                     <div>
                         <div class="stat-row">
@@ -284,6 +292,7 @@
                     memoryHeapMb: 0,
                     memoryExternalMb: 0,
                     queueSize: 0,
+                    savePromptEnabled: false,
                     stats1h: {
                         total: 0,
                         success: 0,
@@ -427,6 +436,7 @@
                             this.memoryHeapMb = data.memoryHeapMb
                             this.memoryExternalMb = data.memoryExternalMb
                             this.queueSize = data.queueSize
+                            this.savePromptEnabled = data.savePromptEnabled
 
                             // Statistics
                             if (data.stats1h) this.stats1h = data.stats1h

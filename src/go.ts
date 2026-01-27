@@ -42,7 +42,7 @@ export async function Go(config: TConfig): Promise<void> {
 			Log().debug('APP', 'Llama initialized successfully')
 			const gpuInfo = await GetGpuInfo()
 			if (gpuInfo) {
-				Log().debug('APP', `GPU: type=${gpuInfo.type}, device=${gpuInfo.device || 'unknown'}, VRAM total=${gpuInfo.totalVramMb || 'N/A'}MB`)
+				Log().debug('APP', `GPU: type = ${gpuInfo.type}, device = ${gpuInfo.device || 'unknown'}, VRAM total = ${gpuInfo.totalVramMb || 'N/A'}MB`)
 			} else {
 				Log().debug('APP', 'GPU info not available')
 			}
