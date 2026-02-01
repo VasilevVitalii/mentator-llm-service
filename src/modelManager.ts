@@ -91,13 +91,17 @@ class ModelManagerClass extends ClassLogger {
 	}
 
 	getModel(name: string): (TModelFile & { fullFileName: string }) | undefined {
-		const model = this._modelFileList.find(f => f.name === name)
-		return model
-			? {
-					fullFileName: join(this._modelDir, model.relativeFileName),
-					...model,
-			  }
-			: undefined
+		let model = this._modelFileList.find(f => (f.name || '').toUpperCase() === (name || '').toUpperCase())
+		if (!model) {
+			model = this._modelFileList.find(f => (f.name || '').toUpperCase() === (`${name}.GGUF` || '').toUpperCase())
+		}
+		if (!model) {
+			return undefined
+		}
+		return {
+			fullFileName: join(this._modelDir, model.relativeFileName),
+			...model,
+		}
 	}
 
 	getModelList(): TModelFile[] {

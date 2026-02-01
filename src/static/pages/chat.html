@@ -759,9 +759,16 @@
                                 console.error('Failed to save options:', err)
                             }
 
-                            // Load model from segment.model (if found in models list)
-                            if (prompt.segment && prompt.segment.model) {
-                                const modelName = prompt.segment.model.trim()
+                            // Load model from llm.model (preferred) or segment.model (legacy fallback)
+                            let modelName = null
+                            if (prompt.llm && prompt.llm.model) {
+                                modelName = prompt.llm.model.trim()
+                            } else if (prompt.segment && prompt.segment.model) {
+                                // Fallback for old format
+                                modelName = prompt.segment.model.trim()
+                            }
+
+                            if (modelName) {
                                 if (this.models.some(m => m.name === modelName)) {
                                     this.selectedModel = modelName
                                 } else {
@@ -823,6 +830,7 @@
                         const prompt = {
                             user: this.messageUser,
                             system: this.messageSystem || undefined,
+                            llm: {},
                             segment: {},
                             options: undefined
                         }
@@ -837,9 +845,9 @@
                             console.error('Failed to load options for saving:', err)
                         }
 
-                        // Add model segment if exists
+                        // Add model to llm object if exists
                         if (this.selectedModel) {
-                            prompt.segment.model = this.selectedModel
+                            prompt.llm.model = this.selectedModel
                         }
 
                         // Add mentator-llm-service segment with useGrammar
