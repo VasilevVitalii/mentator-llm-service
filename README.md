@@ -34,7 +34,9 @@ Traditional LLMs often produce inconsistent output formats, requiring complex po
 
 ## Quick Start with Docker
 
-The fastest way to get started is using the pre-built Docker image:
+The fastest way to get started is using the pre-built Docker image.
+
+**Important:** Replace `/path/to/your/data` with your actual directory path before running the command.
 
 ### GPU Mode (NVIDIA only)
 
@@ -42,7 +44,7 @@ Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-nat
 
 ```bash
 docker run --rm --gpus=all \
-  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -v /path/to/your/data:/opt/mentator-llm-service/data \
   -p 19777:19777 \
   vasilevvitalii/mentator-llm-service:latest
 ```
@@ -51,12 +53,12 @@ docker run --rm --gpus=all \
 
 ```bash
 docker run --rm \
-  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -v /path/to/your/data:/opt/mentator-llm-service/data \
   -p 19777:19777 \
   vasilevvitalii/mentator-llm-service:latest
 ```
 
-The container includes a small default model and will create configuration files automatically on first run. Access the web interface at http://localhost:19777
+The container includes a small default model and will create configuration files automatically on first run in the specified data directory. Access the web interface at http://localhost:19777
 
 For building from source and advanced Docker configuration, see [Docker Support](#docker-support) below.
 

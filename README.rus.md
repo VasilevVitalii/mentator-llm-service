@@ -34,7 +34,9 @@
 
 ## Быстрый старт с Docker
 
-Самый быстрый способ начать работу - использовать готовый Docker-образ:
+Самый быстрый способ начать работу - использовать готовый Docker-образ.
+
+**Важно:** Замените `/path/to/your/data` на реальный путь к вашей директории перед запуском команды.
 
 ### Режим GPU (только NVIDIA)
 
@@ -42,7 +44,7 @@
 
 ```bash
 docker run --rm --gpus=all \
-  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -v /path/to/your/data:/opt/mentator-llm-service/data \
   -p 19777:19777 \
   vasilevvitalii/mentator-llm-service:latest
 ```
@@ -51,12 +53,12 @@ docker run --rm --gpus=all \
 
 ```bash
 docker run --rm \
-  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -v /path/to/your/data:/opt/mentator-llm-service/data \
   -p 19777:19777 \
   vasilevvitalii/mentator-llm-service:latest
 ```
 
-Контейнер включает небольшую модель по умолчанию и автоматически создаст конфигурационные файлы при первом запуске. Веб-интерфейс будет доступен по адресу http://localhost:19777
+Контейнер включает небольшую модель по умолчанию и автоматически создаст конфигурационные файлы при первом запуске в указанной директории данных. Веб-интерфейс будет доступен по адресу http://localhost:19777
 
 Для сборки из исходников и расширенной конфигурации Docker см. раздел [Поддержка Docker](#поддержка-docker) ниже.
 
