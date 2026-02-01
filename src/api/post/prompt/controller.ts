@@ -27,6 +27,7 @@ export async function controller(fastify: FastifyInstance) {
 		'/prompt',
 		{
 			schema: {
+				// @ts-expect-error - swagger plugin extends FastifySchema
 				description: 'Process prompt and return JSON array',
 				tags: ['main'],
 				body: PostPromptRequestDto,
