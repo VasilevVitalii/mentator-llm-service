@@ -32,8 +32,37 @@
 3. **Исключая ошибки парсинга** - не нужны блоки try-catch вокруг JSON.parse()
 4. **Предоставляя предсказуемые API** - идеально для автоматизации, извлечения данных и структурированных AI-агентов
 
+## Быстрый старт с Docker
+
+Самый быстрый способ начать работу - использовать готовый Docker-образ:
+
+### Режим GPU (только NVIDIA)
+
+Требуется установленный [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+
+```bash
+docker run --rm --gpus=all \
+  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  vasilevvitalii/mentator-llm-service:latest
+```
+
+### Режим CPU
+
+```bash
+docker run --rm \
+  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  vasilevvitalii/mentator-llm-service:latest
+```
+
+Контейнер включает небольшую модель по умолчанию и автоматически создаст конфигурационные файлы при первом запуске. Веб-интерфейс будет доступен по адресу http://localhost:19777
+
+Для сборки из исходников и расширенной конфигурации Docker см. раздел [Поддержка Docker](#поддержка-docker) ниже.
+
 ## Содержание
 
+- [Быстрый старт с Docker](#быстрый-старт-с-docker)
 - [Установка](#установка)
 - [Быстрый старт](#быстрый-старт)
 - [Конфигурация](#конфигурация)

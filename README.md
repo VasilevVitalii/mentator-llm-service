@@ -32,8 +32,37 @@ Traditional LLMs often produce inconsistent output formats, requiring complex po
 3. **Eliminating parsing errors** - no need for try-catch blocks around JSON.parse()
 4. **Providing predictable APIs** - perfect for automation, data extraction, and structured AI agents
 
+## Quick Start with Docker
+
+The fastest way to get started is using the pre-built Docker image:
+
+### GPU Mode (NVIDIA only)
+
+Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed.
+
+```bash
+docker run --rm --gpus=all \
+  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  vasilevvitalii/mentator-llm-service:latest
+```
+
+### CPU Mode
+
+```bash
+docker run --rm \
+  -v $(pwd)/data:/opt/mentator-llm-service/data \
+  -p 19777:19777 \
+  vasilevvitalii/mentator-llm-service:latest
+```
+
+The container includes a small default model and will create configuration files automatically on first run. Access the web interface at http://localhost:19777
+
+For building from source and advanced Docker configuration, see [Docker Support](#docker-support) below.
+
 ## Table of Contents
 
+- [Quick Start with Docker](#quick-start-with-docker)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
