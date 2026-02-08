@@ -528,8 +528,13 @@
                     const msPadded = String(ms).padStart(3, '0')
                     return `${min}m ${s}.${msPadded}s`
                 },
-                truncateText(text, maxLength) {
+                truncateText(text, maxLength, maxLines = 3) {
                     if (!text) return ''
+                    const lines = text.split('\n')
+                    if (lines.length > maxLines) {
+                        const truncated = lines.slice(0, maxLines).join('\n')
+                        return truncated.length <= maxLength ? truncated + '...' : truncated.substring(0, maxLength) + '...'
+                    }
                     if (text.length <= maxLength) return text
                     return text.substring(0, maxLength) + '...'
                 },
