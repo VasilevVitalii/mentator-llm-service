@@ -14,6 +14,7 @@ const ChatLogDto = Type.Object({
 	durationQueueMsec: Type.Number(),
 	request: Type.Optional(Type.String()),
 	response: Type.Optional(Type.String()),
+	answerRaw: Type.Optional(Type.String()),
 })
 
 export const GetLogChatByidResponseDto = Type.Object({

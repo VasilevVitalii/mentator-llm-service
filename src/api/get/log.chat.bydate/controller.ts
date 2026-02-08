@@ -33,6 +33,7 @@ function formatChatLogLine(log: {
 	durationQueueMsec: number
 	request?: string
 	response?: string
+	answerRaw?: string
 }): string {
 	const date = new Date(log.ts)
 	// Format as local time instead of UTC
@@ -55,6 +56,10 @@ function formatChatLogLine(log: {
 
 	if (log.response) {
 		line += '\n' + log.response.split('\n').map(l => `        ${l}`).join('\n')
+	}
+
+	if (log.answerRaw) {
+		line += '\n' + log.answerRaw.split('\n').map(l => `        ${l}`).join('\n')
 	}
 
 	return line
