@@ -2,7 +2,8 @@ import { LlamaChatSession } from 'node-llama-cpp'
 import type { TResultCode } from '../../../../tresult'
 import type { TGenerationParams } from './getGenerationParams'
 
-export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, parseAsJson: boolean = true): Promise<TResultCode<any>> {
+export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, parseAsJson: boolean = true): Promise<TResultCode<any> & { rawText?: string }> {
+    let rawText: string | undefined
     try {
         const responseTextRes = await GetResponseText(session, message, params, durationMsec)
         if (!responseTextRes.ok) {
@@ -12,10 +13,11 @@ export async function GetResponse(session: LlamaChatSession, message: string, pa
             return {ok: false, errorCode: 400, error: 'response text - empty string'}
         }
         let text = responseTextRes.result.trim()
+        rawText = text
 
         // If parseAsJson is false, return text as is
         if (!parseAsJson) {
-            return {ok: true, result: text}
+            return {ok: true, result: text, rawText}
         }
 
         // Extract JSON from markdown code blocks if present
@@ -24,9 +26,9 @@ export async function GetResponse(session: LlamaChatSession, message: string, pa
             text = jsonMatch[1].trim()
         }
         const json = JSON.parse(text)
-        return {ok: true, result: json}
+        return {ok: true, result: json, rawText}
     } catch (err) {
-        return { ok: false, error: `on convert response text to JSON: ${err}`, errorCode: 400 }
+        return { ok: false, error: `on convert response text to JSON: ${err}`, errorCode: 400, rawText }
     }
 }
 

@@ -24,6 +24,6 @@ Go({
     log: {
         level: 'trace',
         liveDay: 100,
-        savePrompt: false
+        savePrompt: true
     }
 })

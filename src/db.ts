@@ -58,9 +58,15 @@ class DbClass {
 					id INTEGER PRIMARY KEY,
 					request TEXT NOT NULL,
 					response TEXT NOT NULL,
+					answerRaw TEXT,
 					FOREIGN KEY (id) REFERENCES prompt(id)
 				)
 			`)
+
+			const promptExtraCols = this._db.prepare(`PRAGMA table_info(promptExtra)`).all() as Array<{ name: string }>
+			if (!promptExtraCols.some(c => c.name === 'answerRaw')) {
+				this._db.exec(`ALTER TABLE promptExtra ADD COLUMN answerRaw TEXT`)
+			}
 		} catch (err) {
 			this.error = `failed to initialize database in file "${dbFilePath}": ${err}`
 		}
@@ -70,6 +76,7 @@ class DbClass {
 		code: number,
 		request: any,
 		response: any,
+		answerText: string | null,
 		duration?: { promptMsec?: number; queueMsec?: number }
 	): Promise<{ requestKB: string; responseKB: string; ts: number }> {
 		const ts = Date.now()
@@ -89,8 +96,8 @@ class DbClass {
 				const result = query1.run(ts, duration?.promptMsec || 0, duration?.queueMsec || 0, code)
 				const promptId = result.lastInsertRowid
 
-				const query2 = this._db!.prepare('INSERT INTO promptExtra (id, request, response) VALUES (?, ?, ?)')
-				query2.run(promptId, requestText, responseText)
+				const query2 = this._db!.prepare('INSERT INTO promptExtra (id, request, response, answerRaw) VALUES (?, ?, ?, ?)')
+				query2.run(promptId, requestText, responseText, answerText)
 			} catch (err) {
 				this.error = `${err}`
 				Log().error(PIPE, `database error on save prompt: ${err}`)
@@ -341,6 +348,7 @@ class DbClass {
 			durationQueueMsec: number
 			request?: string
 			response?: string
+			answerRaw?: string
 		}>
 	> {
 		if (this.error) return []
@@ -362,14 +370,15 @@ class DbClass {
 					durationQueueMsec: number
 				}>
 
-				const extraQuery = this._db!.prepare('SELECT request, response FROM promptExtra WHERE id = ?')
+				const extraQuery = this._db!.prepare('SELECT request, response, answerRaw FROM promptExtra WHERE id = ?')
 
 				return prompts.map(prompt => {
-					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string } | undefined
+					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string; answerRaw?: string } | undefined
 					return {
 						...prompt,
 						request: extraRow?.request,
 						response: extraRow?.response,
+						answerRaw: extraRow?.answerRaw,
 					}
 				})
 			} catch (err) {
@@ -392,6 +401,7 @@ class DbClass {
 			durationQueueMsec: number
 			request?: string
 			response?: string
+			answerRaw?: string
 		}>
 	> {
 		if (this.error) return []
@@ -412,14 +422,15 @@ class DbClass {
 					durationQueueMsec: number
 				}>
 
-				const extraQuery = this._db!.prepare('SELECT request, response FROM promptExtra WHERE id = ?')
+				const extraQuery = this._db!.prepare('SELECT request, response, answerRaw FROM promptExtra WHERE id = ?')
 
 				return prompts.map(prompt => {
-					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string } | undefined
+					const extraRow = extraQuery.get(prompt.id) as { request: string; response: string; answerRaw?: string } | undefined
 					return {
 						...prompt,
 						request: extraRow?.request,
 						response: extraRow?.response,
+						answerRaw: extraRow?.answerRaw,
 					}
 				})
 			} catch (err) {

@@ -27,7 +27,7 @@ export async function controller(fastify: FastifyInstance) {
 		'/prompt',
 		{
 			schema: {
-				// @ts-expect-error - swagger plugin extends FastifySchema
+				//@ts-ignore - swagger plugin extends FastifySchema
 				description: 'Process prompt and return JSON array',
 				tags: ['main'],
 				body: PostPromptRequestDto,
@@ -61,7 +61,7 @@ export async function controller(fastify: FastifyInstance) {
 					}
 					res.code(llamaRes.errorCode).send(errResponse)
 					Log().error(pipe, log, llamaRes.error)
-					await Db().editSavePrompt(llamaRes.errorCode, body, errResponse, duration)
+					await Db().editSavePrompt(llamaRes.errorCode, body, errResponse, null, duration)
 					return
 				}
 				const llama = llamaRes.result
@@ -92,7 +92,7 @@ export async function controller(fastify: FastifyInstance) {
 					}
 					res.code(generationParamsRes.errorCode).send(errResponse)
 					Log().error(pipe, log, generationParamsRes.error)
-					await Db().editSavePrompt(generationParamsRes.errorCode, body, errResponse, duration)
+					await Db().editSavePrompt(generationParamsRes.errorCode, body, errResponse, null, duration)
 					return
 				}
 				const generationParams = generationParamsRes.result
@@ -119,7 +119,7 @@ export async function controller(fastify: FastifyInstance) {
 							}
 							res.code(contextRes.errorCode).send(errResponse)
 							Log().error(pipe, log, contextRes.error)
-							await Db().editSavePrompt(contextRes.errorCode, body, errResponse, duration)
+							await Db().editSavePrompt(contextRes.errorCode, body, errResponse, null, duration)
 							return
 						}
 						context = contextRes.result.context
@@ -137,7 +137,7 @@ export async function controller(fastify: FastifyInstance) {
 							}
 							res.code(sessionRes.errorCode).send(errResponse)
 							Log().error(pipe, log, sessionRes.error)
-							await Db().editSavePrompt(sessionRes.errorCode, body, errResponse, duration)
+							await Db().editSavePrompt(sessionRes.errorCode, body, errResponse, null, duration)
 							return
 						}
 						session = sessionRes.result
@@ -145,6 +145,7 @@ export async function controller(fastify: FastifyInstance) {
 						// Only parse as JSON if format is specified
 						const parseAsJson = body.format !== undefined && body.format !== null
 						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec, parseAsJson)
+						const answerRaw = responseRes.rawText ?? null
 						if (!responseRes.ok) {
 							const duration = {
 								promptMsec: durationPrompt.getMsec(),
@@ -156,7 +157,7 @@ export async function controller(fastify: FastifyInstance) {
 							}
 							res.code(responseRes.errorCode).send(errResponse)
 							Log().error(pipe, log, responseRes.error)
-							await Db().editSavePrompt(responseRes.errorCode, body, errResponse, duration)
+							await Db().editSavePrompt(responseRes.errorCode, body, errResponse, answerRaw, duration)
 							return
 						}
 						const responseJson = responseRes.result
@@ -175,7 +176,7 @@ export async function controller(fastify: FastifyInstance) {
 								}
 								res.code(responseValidationRes.errorCode).send(errResponse)
 								Log().error(pipe, log, responseValidationRes.error)
-								await Db().editSavePrompt(responseValidationRes.errorCode, body, errResponse, duration)
+								await Db().editSavePrompt(responseValidationRes.errorCode, body, errResponse, answerRaw, duration)
 								return
 							}
 						}
@@ -194,7 +195,7 @@ export async function controller(fastify: FastifyInstance) {
 						res.code(200).send(okResponse)
 						Log().debug(pipe, log, JSON.stringify({duration, loadModelStatus}))
 						if (fastify.appConfig.log.savePrompt) {
-							await Db().editSavePrompt(200, body, okResponse, duration)
+							await Db().editSavePrompt(200, body, okResponse, answerRaw, duration)
 						}
 					} catch (err) {
 						const duration = {
@@ -208,7 +209,7 @@ export async function controller(fastify: FastifyInstance) {
 						}
 						res.code(500).send(errResponse)
 						Log().error(pipe, log, error)
-						await Db().editSavePrompt(500, body, errResponse, duration)
+						await Db().editSavePrompt(500, body, errResponse, null, duration)
 					} finally {
 						if (session) {
 							session.dispose({ disposeSequence: true })
@@ -230,7 +231,7 @@ export async function controller(fastify: FastifyInstance) {
 				}
 				res.code(500).send(errResponse)
 				Log().error(pipe, log, error)
-				await Db().editSavePrompt(500, body, errResponse, duration)
+				await Db().editSavePrompt(500, body, errResponse, null, duration)
 			}
 		},
 	)

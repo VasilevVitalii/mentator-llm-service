@@ -83,10 +83,20 @@
             background-color: #f5dcc4;
         }
 
-        .copy-button {
+        .log-data-label {
             position: absolute;
-            left: 8px;
+            left: 0;
             top: 0;
+            width: 96px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 4px;
+            user-select: none;
+            margin: 1px 0px 0px 0px;
+        }
+
+        .copy-button {
             padding: 0;
             background: none;
             border: none;
@@ -95,6 +105,8 @@
             user-select: none;
             opacity: 0.6;
             line-height: 1;
+            flex-shrink: 0;
+            margin: -4px 0px 0px 0px;
         }
 
         .copy-button:hover {
@@ -103,6 +115,13 @@
 
         .copy-button:active {
             opacity: 0.5;
+        }
+
+        .log-data-label-text {
+            font-weight: bold;
+            color: #999;
+            font-size: 11px;
+            text-transform: uppercase;
         }
 
         .checkbox-group {
@@ -286,15 +305,31 @@
                              class="log-data-line"
                              :class="{ error: log.code !== 200 }"
                              @click="toggleExpanded(log.id, 'request')">
-                            <button class="copy-button" title="copy this request to clipboard" @click.stop="copyToClipboard(log.request)">📋</button>request
+                            <div class="log-data-label">
+                                <button class="copy-button" title="copy this request to clipboard" @click.stop="copyToClipboard(log.request)">📋</button>
+                                <span class="log-data-label-text">request</span>
+                            </div>
 {{ isExpanded(log.id, 'request') ? log.request : truncateText(log.request, 500) }}
                         </div>
                         <div v-if="log.response"
                              class="log-data-line"
                              :class="{ error: log.code !== 200 }"
                              @click="toggleExpanded(log.id, 'response')">
-                            <button class="copy-button" title="copy this response to clipboard" @click.stop="copyToClipboard(log.response)">📋</button>response
+                            <div class="log-data-label">
+                                <button class="copy-button" title="copy this response to clipboard" @click.stop="copyToClipboard(log.response)">📋</button>
+                                <span class="log-data-label-text">response</span>
+                            </div>
 {{ isExpanded(log.id, 'response') ? log.response : truncateText(log.response, 500) }}
+                        </div>
+                        <div v-if="log.answerRaw"
+                             class="log-data-line"
+                             :class="{ error: log.code !== 200 }"
+                             @click="toggleExpanded(log.id, 'answerRaw')">
+                            <div class="log-data-label">
+                                <button class="copy-button" title="copy this answer to clipboard" @click.stop="copyToClipboard(log.answerRaw)">📋</button>
+                                <span class="log-data-label-text">answer</span>
+                            </div>
+{{ isExpanded(log.id, 'answerRaw') ? log.answerRaw : truncateText(log.answerRaw, 500) }}
                         </div>
                     </div>
                 </div>
@@ -303,11 +338,11 @@
                 <div class="logs-bottom-section">
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <div class="checkbox-group">
-                            <input type="checkbox" id="errors-only" v-model="errorsOnly" />
+                            <input type="checkbox" id="errors-only" v-model="errorsOnly" :disabled="!savePromptEnabled" />
                             <label for="errors-only">errors only</label>
                         </div>
                         <div v-if="!savePromptEnabled" style="color: #ff6b35; font-size: 12px; font-weight: bold;">
-                            This feature is unavailable because log.savePrompt is set to false in the configuration.
+                            Viewing successful requests is unavailable because log.savePrompt is set to false in the configuration.
                         </div>
                     </div>
                     <div class="logs-bottom-buttons">
@@ -417,6 +452,9 @@
                         const res = await fetch('/state')
                         const data = await res.json()
                         this.savePromptEnabled = data.savePromptEnabled
+                        if (!this.savePromptEnabled) {
+                            this.errorsOnly = true
+                        }
                     } catch (err) {
                         console.error('Failed to fetch config:', err)
                     }
@@ -519,6 +557,10 @@
 
                     if (log.response) {
                         line += '\n' + log.response.split('\n').map(l => `        ${l}`).join('\n')
+                    }
+
+                    if (log.answerRaw) {
+                        line += '\n' + log.answerRaw.split('\n').map(l => `        ${l}`).join('\n')
                     }
 
                     return line
