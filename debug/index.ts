@@ -2,8 +2,8 @@ import { Go } from "../src/go"
 
 Go({
     port: 19778,
-    modelDir: '/home/vitalii/GGUF/',
-    dbFile: '/home/vitalii/Work/mentator/mentator-llm-service/debug/testdata/mentator-llm-service.db',
+    modelDir: '/home/vitalii/docker-volume/mentator-llm-service/models/',
+    dbFile: '/home/vitalii/Work/mentator_new/mentator-llm-service/debug/testdata/mentator-llm-service.db',
     defaultOptions: {
         temperature: 0.0,
         topP: 0.1,

@@ -123,9 +123,9 @@
                     <div v-else class="stat-label">gpu info unavailable</div>
                 </div>
 
-                <!-- Current Model -->
+                <!-- Model Info -->
                 <div class="stat-widget">
-                    <h3>current model</h3>
+                    <h3>model info</h3>
                     <div>
                         <div class="stat-row">
                             <span class="stat-row-label">count models</span>
@@ -133,19 +133,19 @@
                         </div>
                         <div v-if="currentModel">
                             <div class="stat-row">
-                                <span class="stat-row-label">name</span>
+                                <span class="stat-row-label">in memory</span>
                                 <span class="stat-row-value">{{ currentModel.name }}</span>
                             </div>
                             <div class="stat-row">
-                                <span class="stat-row-label">size</span>
+                                <span class="stat-row-label">in memory (size)</span>
                                 <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
                             </div>
                             <div class="stat-row">
-                                <span class="stat-row-label">loaded at</span>
+                                <span class="stat-row-label">in memory (loaded at)</span>
                                 <span class="stat-row-value">{{ currentModel.loadTime }}</span>
                             </div>
                         </div>
-                        <div v-else class="stat-label">no model loaded</div>
+                        <div v-else class="stat-label">no model in memory</div>
                     </div>
                 </div>
 
