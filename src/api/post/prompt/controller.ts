@@ -107,7 +107,7 @@ export async function controller(fastify: FastifyInstance) {
 					let context: any = undefined
 					let session: any = undefined
 					try {
-						const contextRes = await GetContext(llama, body.model)
+						const contextRes = await GetContext(llama, body.model, body.gpulayer)
 						if (!contextRes.ok) {
 							const duration = {
 								promptMsec: durationPrompt.getMsec(),

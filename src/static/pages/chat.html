@@ -34,6 +34,10 @@
                                 <option v-for="model in models" :key="model.name" :value="model.name">{{ formatModelDisplay(model) }}</option>
                             </select>
                         </div>
+                        <div class="form-group fixed-width-70">
+                            <span class="form-label">gpu layer</span>
+                            <input v-model.number="gpuLayer" type="number" min="0" class="form-select no-arrow" :disabled="isSending" placeholder="auto">
+                        </div>
                         <button class="form-button width-120" :disabled="isSending" @click="onFormatClick">format</button>
                         <button class="form-button width-120" :disabled="isSending" @click="onOptionsClick">options</button>
                     </div>
@@ -231,6 +235,7 @@
                     version: '0.0.0',
                     messageType: 'user',
                     selectedModel: '',
+                    gpuLayer: null,
                     models: [],
                     response: '',
                     responseFullData: null, // Full response object from API
@@ -293,6 +298,13 @@
                 selectedModel(newModel) {
                     if (newModel) {
                         localStorage.setItem('chat.model', newModel)
+                    }
+                },
+                gpuLayer(newVal) {
+                    if (newVal !== null && newVal >= 0) {
+                        localStorage.setItem('chat.gpuLayer', String(newVal))
+                    } else {
+                        localStorage.removeItem('chat.gpuLayer')
                     }
                 }
             },
@@ -394,6 +406,10 @@
                             return a.name.localeCompare(b.name)
                         })
 
+                        // Load saved gpu layer from localStorage
+                        const savedGpuLayer = localStorage.getItem('chat.gpuLayer')
+                        this.gpuLayer = savedGpuLayer ? parseInt(savedGpuLayer, 10) : null
+
                         // Load saved model from localStorage
                         const savedModel = localStorage.getItem('chat.model')
 
@@ -411,7 +427,9 @@
                 },
                 formatModelDisplay(model) {
                     const sizeMb = Math.ceil(model.sizeKb / 1024)
-                    return `${model.name} (${sizeMb} MB)`
+                    const thinking = model.isReasoning ? ', THINKING' : ''
+                    const layers = model.layerCount ? `, ${model.layerCount} LAYER(s)` : ''
+                    return `${model.name} (${sizeMb} MB${thinking}${layers})`
                 },
                 // Messages - localStorage helpers
                 loadMessages() {
@@ -1006,6 +1024,7 @@
                         // Prepare request body
                         const requestBody = {
                             model: this.selectedModel,
+                            gpulayer: (typeof this.gpuLayer === 'number' && this.gpuLayer >= 0) ? this.gpuLayer : undefined,
                             message: {
                                 user: this.messageUser,
                                 system: this.messageSystem || undefined

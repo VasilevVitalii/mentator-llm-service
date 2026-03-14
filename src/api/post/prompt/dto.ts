@@ -4,6 +4,7 @@ import { SPromptOptions } from 'vv-ai-prompt-format'
 // POST /prompt request parameters
 export const PostPromptRequestDto = Type.Object({
 	model: Type.String({ description: 'Model name (file name without .gguf extension)' }),
+	gpulayer: Type.Optional(Type.Number({ description: 'Number of model layers to offload to GPU (0 = CPU only, >0 = layers on GPU)', minimum: 0 })),
 	message: Type.Object({
 		system: Type.Optional(Type.String({ description: 'System prompt' })),
 		user: Type.String({ description: 'User prompt' }),

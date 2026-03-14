@@ -141,6 +141,10 @@
                                 <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
                             </div>
                             <div class="stat-row">
+                                <span class="stat-row-label">in memory (gpu layer)</span>
+                                <span class="stat-row-value">{{ currentModel.gpulayer != null ? currentModel.gpulayer : 'auto' }}</span>
+                            </div>
+                            <div class="stat-row">
                                 <span class="stat-row-label">in memory (loaded at)</span>
                                 <span class="stat-row-value">{{ currentModel.loadTime }}</span>
                             </div>
@@ -390,7 +394,9 @@
                 },
                 formatModelDisplay(model) {
                     const sizeMb = Math.ceil(model.sizeKb / 1024)
-                    return `${model.name} (${sizeMb} MB)`
+                    const thinking = model.isReasoning ? ', THINKING' : ''
+                    const layers = model.layerCount ? `, ${model.layerCount} LAYER(s)` : ''
+                    return `${model.name} (${sizeMb} MB${thinking}${layers})`
                 },
                 onModelsClick() {
                     this.modelsModalOpen = true
@@ -423,6 +429,7 @@
                                     name: data.currentModel.name,
                                     sizeMb: data.currentModel.sizeMb,
                                     loadTime: formatDateTime(new Date(data.currentModel.loadTimestamp)),
+                                    gpulayer: data.currentModel.gpulayer ?? null,
                                 }
                             } else {
                                 this.currentModel = null

@@ -18,8 +18,9 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **Guaranteed JSON Schema compliance** - responses always match your defined structure using GBNF (Grammar-Based Neural Format)
 - **Local inference** - full privacy and control over your data, no external API calls
 - **GGUF model support** - use quantized models for efficient processing on consumer hardware
+- **GPU layer control** - per-request `gpulayer` parameter for partial GPU offloading (0 = CPU only, N = N layers on GPU)
 - **Simple REST API** - easy integration with any programming language or tool
-- **Web UI** - interactive chat interface for testing and experimentation
+- **Web UI** - interactive chat interface for testing and experimentation, with model info showing layer count and reasoning capability
 - **Request queueing** - automatic handling of concurrent requests to prevent GPU/CPU overload
 - **Flexible configuration** - customizable model parameters, logging, and database settings
 
@@ -345,6 +346,7 @@ Process a prompt and return structured JSON response.
 ```typescript
 {
   model: string;              // Model name (filename with .gguf)
+  gpulayer?: number;          // GPU layers to offload (0 = CPU only, N = N layers on GPU, omit = auto)
   message: {
     system?: string;          // Optional system prompt
     user: string;             // User prompt
@@ -406,7 +408,7 @@ Validate and complete generation options.
 Get current service state (loaded models, queue status).
 
 #### `GET /state/models`
-List all available models in the model directory.
+List all available models in the model directory. Each model entry includes `layerCount` (transformer layer count parsed from the GGUF header, if available) and `isReasoning` (whether the model has thinking/reasoning mode based on its chat template).
 
 #### `GET /state/version`
 Get service version.
@@ -426,11 +428,13 @@ See full API documentation at `http://localhost:19777/doc` (Swagger UI).
 The service provides several web pages:
 
 - **/** - Main page with service overview and examples
-- **/chat** - Interactive chat interface for testing prompts
+- **/chat** - Interactive chat interface for testing prompts; includes a `gpu layer` field for per-request GPU offloading control (persisted in localStorage)
 - **/doc** - Swagger/OpenAPI API documentation
-- **/stat** - Statistics dashboard with loaded models and metrics
+- **/stat** - Statistics dashboard with loaded models and metrics; model info card shows currently loaded model name, size, gpu layer (or `auto`), and load time
 - **/log/core** - Core service operation logs
 - **/log/chat** - Request/response logs for prompts
+
+Model names in dropdowns and lists are displayed with additional info parsed from the GGUF header: `model-name.gguf (498 MB, THINKING, 24 LAYER(s))`. `THINKING` is shown only for models with reasoning/thinking mode (e.g. DeepSeek-R1, Qwen3).
 
 ## Building from Source
 

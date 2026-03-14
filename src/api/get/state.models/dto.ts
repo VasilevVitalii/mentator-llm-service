@@ -6,6 +6,8 @@ const ModelDto = Type.Object({
 	name: Type.String(),
 	relativeFileName: Type.String(),
 	sizeKb: Type.Number(),
+	layerCount: Type.Optional(Type.Number()),
+	isReasoning: Type.Optional(Type.Boolean()),
 })
 
 export const GetStateModelsResponseDto = Type.Object({

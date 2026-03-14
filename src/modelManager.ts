@@ -3,6 +3,7 @@ import { fsReadDir, fsReadDirSync } from './util/fsReadDir'
 import { singleton } from './util/singleton'
 import { ClassLogger } from './util/classLogger'
 import { basename, dirname, join } from 'path'
+import { readGgufInfo } from './util/ggufInfo'
 
 const PIPE = 'MANAGER.MODEL'
 
@@ -10,6 +11,8 @@ export type TModelFile = {
 	relativeFileName: string
 	name: string
 	sizeKb: number
+	layerCount?: number
+	isReasoning?: boolean
 }
 
 class ModelManagerClass extends ClassLogger {
@@ -36,10 +39,13 @@ class ModelManagerClass extends ClassLogger {
 			if (modelFileList.some(f => f.name === name)) {
 				name = `${name} (${dirname(fileItem.relativeFileName)})`
 			}
+			const ggufInfo = readGgufInfo(join(this._modelDir, fileItem.relativeFileName))
 			modelFileList.push({
 				name: name,
 				relativeFileName: fileItem.relativeFileName,
 				sizeKb: fileItem.sizeKb,
+				layerCount: ggufInfo.blockCount,
+				isReasoning: ggufInfo.isReasoning,
 			})
 			if (!this._modelFileList.some(f => f.name === name)) {
 				fileNew.push(name)

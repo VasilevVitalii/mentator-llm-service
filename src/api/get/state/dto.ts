@@ -10,6 +10,7 @@ export const GetStateResponseDto = Type.Object({
 			name: Type.String(),
 			sizeMb: Type.Number(),
 			loadTimestamp: Type.Number(),
+			gpulayer: Type.Optional(Type.Number()),
 		}),
 		Type.Null(),
 	]),
