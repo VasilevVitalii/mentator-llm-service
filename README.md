@@ -19,6 +19,7 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **Local inference** - full privacy and control over your data, no external API calls
 - **GGUF model support** - use quantized models for efficient processing on consumer hardware
 - **GPU layer control** - per-request `gpulayer` parameter for partial GPU offloading (0 = CPU only, N = N layers on GPU)
+- **Embedding endpoint** - `POST /embedding` generates text embedding vectors using any GGUF embedding model; shares the same queue and single-model-in-memory principle as `/prompt`
 - **Simple REST API** - easy integration with any programming language or tool
 - **Web UI** - interactive chat interface for testing and experimentation, with model info showing layer count and reasoning capability
 - **Request queueing** - automatic handling of concurrent requests to prevent GPU/CPU overload
@@ -390,6 +391,44 @@ Process a prompt and return structured JSON response.
   error: string;              // Error description
 }
 ```
+
+#### `POST /embedding`
+Generate an embedding vector for a text string using a local GGUF embedding model.
+
+**Request body**:
+```typescript
+{
+  model: string;       // Model name (filename with .gguf), e.g. "bge-m3-Q8_0.gguf"
+  gpulayer?: number;   // GPU layers to offload (0 = CPU only, N = N layers on GPU, omit = auto)
+  message: string;     // Text to embed
+}
+```
+
+**Response** (200 OK):
+```typescript
+{
+  duration: {
+    promptMsec: number;   // Processing time
+    queueMsec: number;    // Queue wait time
+  };
+  result: {
+    loadModelStatus: "load" | "exists";
+    data: number[];       // Embedding vector (float32 values)
+  };
+}
+```
+
+**Example**:
+```bash
+curl -X POST http://127.0.0.1:19777/embedding \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "bge-m3-Q8_0.gguf",
+    "message": "Hello world"
+  }'
+```
+
+> **Note:** The embedding endpoint shares the same request queue and single-model-in-memory principle as `/prompt`. If a chat model is loaded, it will be unloaded before the embedding model is loaded, and vice versa. Use dedicated embedding models such as `bge-m3`, `nomic-embed-text`, or `all-minilm` for best results.
 
 ### Validation Endpoints
 

@@ -122,7 +122,7 @@ export async function controller(fastify: FastifyInstance) {
 							await Db().editSavePrompt(contextRes.errorCode, body, errResponse, null, duration)
 							return
 						}
-						context = contextRes.result.context
+						context = await contextRes.result.model.createContext()
 						const loadModelStatus = contextRes.result.loadModelStatus
 
 						const sessionRes = GetSession(context, body.message.system)

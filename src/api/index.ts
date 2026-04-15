@@ -1,6 +1,7 @@
 import { type FastifyInstance } from 'fastify'
 
 import { controller as postPrompt } from './post/prompt/controller'
+import { controller as postEmbedding } from './post/embedding/controller'
 import { controller as postHelperPromptFromstring } from './post/helper.prompt.fromstring/controller'
 import { controller as postHelperPromptTostring } from './post/helper.prompt.tostring/controller'
 import { controller as postCheckGbnf } from './post/check.gbnf/controller'
@@ -23,6 +24,7 @@ import { controller as deleteLogChat } from './delete/log.chat/controller'
 
 export const controllers = [
 	postPrompt,
+	postEmbedding,
 	postHelperPromptFromstring,
 	postHelperPromptTostring,
 	postCheckOptions,
