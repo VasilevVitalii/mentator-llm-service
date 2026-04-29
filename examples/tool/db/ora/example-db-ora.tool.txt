@@ -1,0 +1,18 @@
+$$spec
+{
+  "type": "object",
+  "description": "Execute a SQL query on an Oracle database and return the result rows.",
+  "properties": {
+    "query":    { "type": "string",  "description": "SQL query to execute. Use :1, :2, ... for parameters." },
+    "params":   { "type": "array",   "description": "Optional array of query parameter values." }
+  },
+  "required": ["query"]
+}
+$$code=JS
+const conn = await LIB.db.ora.connect({{example-db-ora-conn}}.host, {{example-db-ora-conn}}.port, {{example-db-ora-conn}}.database, {{example-db-ora-conn}}.login, {{example-db-ora-conn}}.password)
+try {
+    const rows = await conn.exec(args.query, args.params)
+    return rows
+} finally {
+    await conn.disconnect()
+}

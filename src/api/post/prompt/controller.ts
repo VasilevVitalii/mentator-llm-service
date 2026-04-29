@@ -18,6 +18,8 @@ import { QueuePrompt } from '../../../queue'
 import { PromptOptionsParse } from 'vv-ai-prompt-format'
 import { Log } from '../../../log'
 import { Db } from '../../../db'
+import { ToolManager } from '../../../toolManager'
+import type { ChatSessionModelFunctions } from 'node-llama-cpp'
 
 export async function controller(fastify: FastifyInstance) {
 	fastify.post<{
@@ -142,9 +144,42 @@ export async function controller(fastify: FastifyInstance) {
 						}
 						session = sessionRes.result
 
+						// Build server-side tool functions from toolServer
+						// TODO (tool): add inline tool execution (name + spec + code from body.tool)
+						// TODO (tool): add client-side tool support (name + spec, no code — requires multi-turn response to client)
+						// TODO (tool): merge tool[] with toolServer (tool takes priority on name conflict)
+						// TODO (tool): consider disabling grammar when functions are present (they may conflict)
+						let functions: ChatSessionModelFunctions | undefined
+						const usedTools: string[] = []
+						if (body.toolServer && body.toolServer.length > 0) {
+							const useAll = body.toolServer.includes('*')
+							const toolList = useAll
+								? ToolManager().getToolList()
+								: body.toolServer.map(name => ToolManager().getTool(name)).filter(Boolean) as typeof ToolManager extends { getTool: (...a: any[]) => infer R } ? NonNullable<R>[] : any[]
+							if (toolList.length > 0) {
+								const fns: Record<string, any> = {}
+								for (const tool of toolList) {
+									const spec = JSON.parse(tool.spec)
+									fns[tool.name] = {
+										description: spec.description,
+										params: spec,
+										handler: async (args: Record<string, any>) => {
+											usedTools.push(tool.name)
+											const envRes = ToolManager().resolveEnv(tool.name)
+											if (!envRes.ok) throw new Error(envRes.error)
+											const execRes = await ToolManager().execServerSide(tool.name, args, envRes.result)
+											if (!execRes.ok) throw new Error(execRes.error)
+											return execRes.result
+										},
+									}
+								}
+								functions = fns as ChatSessionModelFunctions
+							}
+						}
+
 						// Only parse as JSON if format is specified
 						const parseAsJson = body.format !== undefined && body.format !== null
-						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec, parseAsJson)
+						const responseRes = await GetResponse(session, body.message.user, generationParams, body.durationMsec, parseAsJson, functions)
 						const answerRaw = responseRes.rawText ?? null
 						if (!responseRes.ok) {
 							const duration = {
@@ -189,6 +224,7 @@ export async function controller(fastify: FastifyInstance) {
 							duration,
 							result: {
 								loadModelStatus: loadModelStatus,
+								...(functions !== undefined ? { usedTools } : {}),
 								data: responseJson,
 							},
 						}

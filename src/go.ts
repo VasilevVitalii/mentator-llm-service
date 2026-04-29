@@ -12,6 +12,8 @@ import { ServerStats } from './serverStats'
 import { join } from 'path'
 import { GetLama } from './api/post/prompt/additional/getLama'
 import { GetGpuInfo } from './api/post/prompt/additional/getGpuInfo'
+import { ToolManager } from './toolManager'
+import { ToolEnvManager } from './toolEnvManager'
 
 // const ALLOW_LOG_API_PROMPT = [
 // 	{method: 'POST', url: }
@@ -33,6 +35,10 @@ export async function Go(config: TConfig): Promise<void> {
 		Log().debug('APP','START')
 		ModelManager.init(config.modelDir)
 		ModelManager().scanModelDirStart(60000)
+		ToolManager.init(config.toolDir)
+		ToolManager().scanToolDirStart(60000)
+		ToolEnvManager.init(config.toolEnvDir)
+		ToolEnvManager().scanToolEnvDirStart(60000)
 
 		// Initialize Llama at startup
 		const llamaResult = await GetLama()

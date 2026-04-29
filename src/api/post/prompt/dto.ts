@@ -22,6 +22,26 @@ export const PostPromptRequestDto = Type.Object({
 			}),
 		}),
 	),
+	toolServer: Type.Optional(
+		Type.Array(Type.String(), {
+			description: 'Server-side tools by name. Use ["*"] to include all available server tools. Tool names and code are taken from the server tool directory.',
+		}),
+	),
+	tool: Type.Optional(
+		Type.Array(
+			Type.Object({
+				name: Type.String({ description: 'Tool name' }),
+				spec: Type.Any({ description: 'JSON Schema (root type must be "object") describing the tool parameters for the model' }),
+				code: Type.Optional(
+					Type.Object({
+						lang: Type.String({ description: 'Programming language, e.g. "JS"' }),
+						text: Type.String({ description: 'Inline code executed by the service' }),
+					}),
+				),
+			}),
+			{ description: 'Client-side tools (spec only) and inline tools (spec + code). Overrides toolServer entries with the same name.' },
+		),
+	),
 })
 
 export const PostPromptResponseDto = Type.Object({
@@ -33,6 +53,7 @@ export const PostPromptResponseDto = Type.Object({
 		loadModelStatus: Type.Union([Type.Literal('load'), Type.Literal('exists')], {
 			description: 'Model loading status',
 		}),
+		usedTools: Type.Optional(Type.Array(Type.String(), { description: 'Names of server-side tools called during this request' })),
 		data: Type.Any(),
 	}),
 })

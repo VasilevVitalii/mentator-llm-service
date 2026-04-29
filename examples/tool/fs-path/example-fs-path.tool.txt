@@ -1,0 +1,33 @@
+$$spec
+{
+  "type": "object",
+  "description": "Scan a directory and return a list of its entries with details (name, extension, size, type). Optionally filter by file extension.",
+  "properties": {
+    "dir": {
+      "type": "string",
+      "description": "Absolute path to the directory to scan."
+    },
+    "extension": {
+      "type": "string",
+      "description": "Optional file extension filter, e.g. '.txt' or '.js'. If omitted, all entries are returned."
+    }
+  },
+  "required": ["dir"]
+}
+$$code=JS
+const entries = LIB.fs.readdirSync(args.dir)
+const result = []
+for (const entry of entries) {
+    const fullPath = LIB.path.join(args.dir, entry)
+    const stat = LIB.fs.statSync(fullPath)
+    const ext = LIB.path.extname(entry)
+    if (args.extension && ext.toLowerCase() !== args.extension.toLowerCase()) continue
+    result.push({
+        name: entry,
+        extension: ext || null,
+        sizeByte: stat.size,
+        isDirectory: stat.isDirectory(),
+        fullPath,
+    })
+}
+return result

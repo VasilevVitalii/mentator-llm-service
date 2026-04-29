@@ -1,0 +1,18 @@
+$$spec
+{
+  "type": "object",
+  "description": "Execute a SQL query on a PostgreSQL database and return the result rows.",
+  "properties": {
+    "query":    { "type": "string",  "description": "SQL query to execute. Use $1, $2, ... for parameters." },
+    "params":   { "type": "array",   "description": "Optional array of query parameter values." }
+  },
+  "required": ["query"]
+}
+$$code=JS
+const conn = await LIB.db.pg.connect({{example-db-pg-conn}}.host, {{example-db-pg-conn}}.port, {{example-db-pg-conn}}.database, {{example-db-pg-conn}}.login, {{example-db-pg-conn}}.password)
+try {
+    const rows = await conn.exec(args.query, args.params)
+    return rows
+} finally {
+    await conn.disconnect()
+}

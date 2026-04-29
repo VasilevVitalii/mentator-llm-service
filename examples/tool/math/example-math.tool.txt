@@ -1,0 +1,46 @@
+$$spec
+{
+  "type": "object",
+  "description": "Perform a mathematical calculation. Supported operations: sqrt, pow, log, log2, log10, sin, cos, tan, abs, round, floor, ceil, min, max, hypot.",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "description": "Name of the math operation to perform. One of: sqrt, pow, log, log2, log10, sin, cos, tan, abs, round, floor, ceil, min, max, hypot."
+    },
+    "a": {
+      "type": "number",
+      "description": "First argument."
+    },
+    "b": {
+      "type": "number",
+      "description": "Second argument (required for pow, log with base, min, max, hypot)."
+    }
+  },
+  "required": ["operation", "a"]
+}
+$$code=JS
+const op = args.operation.toLowerCase()
+const a = args.a
+const b = args.b
+
+const ops = {
+    sqrt:  () => LIB.math.sqrt(a),
+    pow:   () => LIB.math.pow(a, b),
+    log:   () => b !== undefined ? LIB.math.log(a) / LIB.math.log(b) : LIB.math.log(a),
+    log2:  () => LIB.math.log2(a),
+    log10: () => LIB.math.log10(a),
+    sin:   () => LIB.math.sin(a),
+    cos:   () => LIB.math.cos(a),
+    tan:   () => LIB.math.tan(a),
+    abs:   () => LIB.math.abs(a),
+    round: () => LIB.math.round(a),
+    floor: () => LIB.math.floor(a),
+    ceil:  () => LIB.math.ceil(a),
+    min:   () => LIB.math.min(a, b),
+    max:   () => LIB.math.max(a, b),
+    hypot: () => LIB.math.hypot(a, b),
+}
+
+if (!ops[op]) throw new Error(`Unknown operation: ${op}`)
+const result = ops[op]()
+return { operation: op, a, b, result }

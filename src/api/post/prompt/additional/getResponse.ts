@@ -1,11 +1,11 @@
-import { LlamaChatSession } from 'node-llama-cpp'
+import { LlamaChatSession, type ChatSessionModelFunctions } from 'node-llama-cpp'
 import type { TResultCode } from '../../../../tresult'
 import type { TGenerationParams } from './getGenerationParams'
 
-export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, parseAsJson: boolean = true): Promise<TResultCode<any> & { rawText?: string }> {
+export async function GetResponse(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, parseAsJson: boolean = true, functions?: ChatSessionModelFunctions): Promise<TResultCode<any> & { rawText?: string }> {
     let rawText: string | undefined
     try {
-        const responseTextRes = await GetResponseText(session, message, params, durationMsec)
+        const responseTextRes = await GetResponseText(session, message, params, durationMsec, functions)
         if (!responseTextRes.ok) {
             return responseTextRes
         }
@@ -32,17 +32,19 @@ export async function GetResponse(session: LlamaChatSession, message: string, pa
     }
 }
 
-async function GetResponseText(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number): Promise<TResultCode<string>> {
+async function GetResponseText(session: LlamaChatSession, message: string, params: TGenerationParams, durationMsec: number, functions?: ChatSessionModelFunctions): Promise<TResultCode<string>> {
     let timeoutId = undefined as NodeJS.Timeout | undefined
     let responseText = ''
     try {
         const abortController = new AbortController()
         timeoutId = setTimeout(() => abortController.abort(), durationMsec)
 
-        responseText = await session.prompt(message, {
-            ...params,
-            signal: abortController.signal,
-        })
+        // grammar and functions are mutually exclusive in node-llama-cpp
+        const { grammar, ...paramsWithoutGrammar } = params
+        responseText = await session.prompt(message, functions
+            ? { ...paramsWithoutGrammar, signal: abortController.signal, functions }
+            : { ...params, signal: abortController.signal }
+        )
 
         return {ok: true, result: responseText}
     } catch (err: any) {

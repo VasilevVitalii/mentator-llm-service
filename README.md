@@ -20,6 +20,7 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **GGUF model support** - use quantized models for efficient processing on consumer hardware
 - **GPU layer control** - per-request `gpulayer` parameter for partial GPU offloading (0 = CPU only, N = N layers on GPU)
 - **Embedding endpoint** - `POST /embedding` generates text embedding vectors using any GGUF embedding model; shares the same queue and single-model-in-memory principle as `/prompt`
+- **Server-side tools** - LLM can call JS functions defined in `*.tool.txt` files; tool code has access to `LIB` (fs, path, math, db connectors for PostgreSQL / MSSQL / Oracle); connection secrets stay in `*.toolenv.txt` files and are never exposed to the model
 - **Simple REST API** - easy integration with any programming language or tool
 - **Web UI** - interactive chat interface for testing and experimentation, with model info showing layer count and reasoning capability
 - **Request queueing** - automatic handling of concurrent requests to prevent GPU/CPU overload
@@ -71,6 +72,7 @@ For building from source and advanced Docker configuration, see [Docker Support]
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Usage Examples](#usage-examples)
+- [Server-Side Tools](#server-side-tools)
 - [API Reference](#api-reference)
 - [Web Interface](#web-interface)
 - [Building from Source](#building-from-source)
@@ -197,6 +199,20 @@ The service automatically discovers all `.gguf` files in this directory.
 ```
 
 These defaults are merged with per-request options.
+
+### Tool Directory
+```jsonc
+"toolDir": "/path/to/tools"  // Directory containing *.tool.txt files
+```
+
+The service automatically discovers all `*.tool.txt` files in this directory. Each file defines one server-side tool the LLM can call. See [Server-Side Tools](#server-side-tools) for file format details.
+
+### Tool Environment Directory
+```jsonc
+"toolEnvDir": "/path/to/toolsenv"  // Directory containing *.toolenv.txt files
+```
+
+Contains `*.toolenv.txt` files — plain JSON objects referenced in tool code via `{{filename}}` syntax (without the `.toolenv.txt` extension). Used to store secrets (DB credentials, API keys) that are never sent to the model.
 
 ### Logging Configuration
 ```jsonc
@@ -336,6 +352,92 @@ async function extractPeople(text: string) {
 }
 ```
 
+## Server-Side Tools
+
+Server-side tools let the LLM call JavaScript functions during generation. The model decides when and how to use them; the service executes the code and feeds results back into the conversation.
+
+### Tool file format (`*.tool.txt`)
+
+Place files in the directory configured as `toolDir`. Each file has two sections:
+
+```
+$$spec
+{
+  "type": "object",
+  "description": "What this tool does (shown to the LLM)",
+  "properties": {
+    "query": { "type": "string", "description": "SQL query to run" }
+  },
+  "required": ["query"]
+}
+$$code=JS
+const conn = await LIB.db.pg.connect({{my-pg-conn}}.host, {{my-pg-conn}}.port,
+    {{my-pg-conn}}.database, {{my-pg-conn}}.login, {{my-pg-conn}}.password)
+try {
+    return await conn.exec(args.query, args.params)
+} finally {
+    await conn.disconnect()
+}
+```
+
+The tool name used in requests is the filename (e.g. `my-query.tool.txt` → name `my-query.tool.txt`).
+
+### Available LIB objects in tool code
+
+| Object | Description |
+|---|---|
+| `LIB.fs` | Node.js `fs` module |
+| `LIB.path` | Node.js `path` module |
+| `LIB.math` | JavaScript `Math` object |
+| `LIB.db.pg` | PostgreSQL connector — `connect(host, port, db, login, password)` → `{ exec(query, params?), disconnect() }` |
+| `LIB.db.mssql` | MS SQL Server connector — same interface, parameters use `@p1, @p2, ...` |
+| `LIB.db.ora` | Oracle connector — same interface, parameters use `:1, :2, ...` |
+
+### Environment variables (`*.toolenv.txt`)
+
+Place JSON files in `toolEnvDir`. Reference them in tool code as `{{filename}}` (without `.toolenv.txt`):
+
+```json
+// my-pg-conn.toolenv.txt
+{
+  "host": "db.example.com",
+  "port": 5432,
+  "database": "prod",
+  "login": "reader",
+  "password": "s3cr3t"
+}
+```
+
+Environment variables are resolved at the moment the LLM calls the tool — not at startup and not when building the tool list. If a referenced variable is missing from `toolEnvDir`, the prompt returns a 500 error with a clear message: `tool "my-query.tool.txt": env var "{{my-pg-conn}}" not found in toolEnvDir`.
+
+### Using tools in a request
+
+```bash
+curl -X POST http://localhost:19777/prompt \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5-0.5b-instruct-q5_k_m.gguf",
+    "message": { "user": "How many tables are in schema public?" },
+    "durationMsec": 60000,
+    "toolServer": ["my-query.tool.txt"]
+  }'
+```
+
+The response includes `result.usedTools` — a list of tool names in the order they were called:
+
+```json
+{
+  "duration": { "promptMsec": 8400, "queueMsec": 0 },
+  "result": {
+    "loadModelStatus": "exists",
+    "usedTools": ["my-query.tool.txt"],
+    "data": "There are 42 tables in schema public."
+  }
+}
+```
+
+See ready-made examples in [examples/tool/](examples/tool/).
+
 ## API Reference
 
 ### Main Endpoints
@@ -364,7 +466,9 @@ Process a prompt and return structured JSON response.
     useGrammar: boolean;      // Use GBNF for grammar-guided generation
     jsonSchema: object;       // JSON Schema for validation/generation
   };
+  toolServer?: string[];      // Server-side tool names to make available (from toolDir); use ["*"] for all
 }
+
 ```
 
 **Response** (200 OK):
@@ -376,6 +480,7 @@ Process a prompt and return structured JSON response.
   };
   result: {
     loadModelStatus: "load" | "exists";  // Model load status
+    usedTools?: string[];     // Tool names called during generation, in order (present only when toolServer is set)
     data: any;                // Structured response matching your schema
   };
 }

@@ -1,0 +1,7 @@
+{
+  "host": "db.example.com",
+  "port": 1521,
+  "database": "PROD",
+  "login": "reader",
+  "password": "s3cr3t"
+}
