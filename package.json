@@ -1,5 +1,5 @@
 {
-    "version": "1.0.8",
+    "version": "1.0.9",
     "name": "mentator-llm-service",
     "module": "src/index.ts",
     "type": "module",

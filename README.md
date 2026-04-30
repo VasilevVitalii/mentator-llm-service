@@ -389,6 +389,11 @@ The tool name used in requests is the filename (e.g. `my-query.tool.txt` → nam
 | `LIB.fs` | Node.js `fs` module |
 | `LIB.path` | Node.js `path` module |
 | `LIB.math` | JavaScript `Math` object |
+| `LIB.crypto` | Node.js `crypto` module — HMAC, hashing, `randomUUID()`, etc. |
+| `LIB.buffer` | Node.js `Buffer` class — base64 encode/decode, binary data |
+| `LIB.http.get(url, options?)` | HTTP GET request → `Response` (native fetch Response) |
+| `LIB.http.post(url, body?, options?)` | HTTP POST; object body is auto-serialized to JSON with correct Content-Type |
+| `LIB.http.request(url, options?)` | Arbitrary HTTP request (full fetch API) |
 | `LIB.db.pg` | PostgreSQL connector — `connect(host, port, db, login, password)` → `{ exec(query, params?), disconnect() }` |
 | `LIB.db.mssql` | MS SQL Server connector — same interface, parameters use `@p1, @p2, ...` |
 | `LIB.db.ora` | Oracle connector — same interface, parameters use `:1, :2, ...` |

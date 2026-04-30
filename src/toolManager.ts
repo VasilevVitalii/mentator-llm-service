@@ -7,13 +7,16 @@ import { CheckJsonToolSpec } from 'vv-ai-prompt-format'
 import { fsReadFileSync } from './util/fsReadFile'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as crypto from 'crypto'
+import { Buffer } from 'buffer'
 import * as pg from './tool/lib/pg'
 import * as mssql from './tool/lib/mssql'
 import * as ora from './tool/lib/ora'
+import * as http from './tool/lib/http'
 import { ToolEnvManager } from './toolEnvManager'
 
 const FUNC = Object.getPrototypeOf(async function () {}).constructor
-const LIB = { fs, path, math: Math, db: { pg, mssql, ora } }
+const LIB = { fs, path, math: Math, crypto, buffer: Buffer, http, db: { pg, mssql, ora } }
 const PIPE = 'MANAGER.TOOL'
 const FILE_TAIL = '.tool.txt'
 

@@ -389,6 +389,11 @@ try {
 | `LIB.fs` | Node.js модуль `fs` |
 | `LIB.path` | Node.js модуль `path` |
 | `LIB.math` | JavaScript объект `Math` |
+| `LIB.crypto` | Node.js модуль `crypto` — HMAC, хеши, `randomUUID()` и др. |
+| `LIB.buffer` | Node.js класс `Buffer` — base64 encode/decode, бинарные данные |
+| `LIB.http.get(url, options?)` | HTTP GET запрос → `Response` (нативный fetch Response) |
+| `LIB.http.post(url, body?, options?)` | HTTP POST; объект в body автоматически сериализуется в JSON с нужным Content-Type |
+| `LIB.http.request(url, options?)` | Произвольный HTTP запрос (полный fetch API) |
 | `LIB.db.pg` | Коннектор PostgreSQL — `connect(host, port, db, login, password)` → `{ exec(query, params?), disconnect() }` |
 | `LIB.db.mssql` | Коннектор MS SQL Server — тот же интерфейс, параметры через `@p1, @p2, ...` |
 | `LIB.db.ora` | Коннектор Oracle — тот же интерфейс, параметры через `:1, :2, ...` |
