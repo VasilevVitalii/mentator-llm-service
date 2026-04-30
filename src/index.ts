@@ -66,6 +66,8 @@ if (args['conf-use']) {
 	ConfigGerenateRes.conf!.port = 19777
 	ConfigGerenateRes.conf!.dbFile = '/opt/mentator-llm-service/data/mentator-llm-service.db'
 	ConfigGerenateRes.conf!.modelDir = '/opt/mentator-llm-service/data/models'
+	ConfigGerenateRes.conf!.toolDir = '/opt/mentator-llm-service/data/tools'
+	ConfigGerenateRes.conf!.toolEnvDir = '/opt/mentator-llm-service/data/toolsenv'
 	Go({
 		...ConfigGerenateRes.conf!,
 		...ConfigDockerReadFileRes.conf!

@@ -35,10 +35,10 @@ export async function Go(config: TConfig): Promise<void> {
 		Log().debug('APP','START')
 		ModelManager.init(config.modelDir)
 		ModelManager().scanModelDirStart(60000)
-		ToolManager.init(config.toolDir)
-		ToolManager().scanToolDirStart(60000)
-		ToolEnvManager.init(config.toolEnvDir)
-		ToolEnvManager().scanToolEnvDirStart(60000)
+		ToolManager.init(config.toolDir ?? '')
+		if (config.toolDir) ToolManager().scanToolDirStart(60000)
+		ToolEnvManager.init(config.toolEnvDir ?? '')
+		if (config.toolEnvDir) ToolEnvManager().scanToolEnvDirStart(60000)
 
 		// Initialize Llama at startup
 		const llamaResult = await GetLama()

@@ -31,14 +31,12 @@ export const SConfig = Type.Intersect([
 			description: 'Full path to directory with model gguf files',
 			default: 'path/to/models',
 		}),
-		toolDir: Type.String({
+		toolDir: Type.Optional(Type.String({
 			description: 'Full path to directory with "*.tool.txt" files',
-			default: 'path/to/tools',
-		}),
-		toolEnvDir: Type.String({
+		})),
+		toolEnvDir: Type.Optional(Type.String({
 			description: 'Full path to directory with "*.toolenv.txt" files',
-			default: 'path/to/toolsenv',
-		}),
+		})),
 		dbFile: Type.String({
 			description: 'File name (with full path) to sqlite file with working data',
 			default: 'path/to/mentator-llm-service.db',

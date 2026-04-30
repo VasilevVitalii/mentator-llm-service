@@ -87,8 +87,10 @@ The `/opt/mentator-llm-service/data` volume contains:
 - `mentator-llm-service.conf.jsonc` - Configuration file (auto-generated on first run)
 - `mentator-llm-service.db` - SQLite database
 - `models/` - GGUF model files
+- `tools/` - Server-side tool files (`*.tool.txt`), created automatically on first run
+- `toolsenv/` - Tool environment variable files (`*.toolenv.txt`), created automatically on first run
 
-On first run, the default model (`qwen2.5-0.5b-instruct-q8_0.gguf`) is copied to the `models/` directory if it's empty.
+On first run, the default model (`qwen2.5-0.5b-instruct-q8_0.gguf`) is copied to the `models/` directory if it's empty. The `tools/` and `toolsenv/` directories are created empty and can be populated with your tool files.
 
 ## Additional Options
 

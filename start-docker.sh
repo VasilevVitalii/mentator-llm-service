@@ -12,6 +12,19 @@ if [ ! -d "$MODELS_DIR" ]; then
     mkdir -p "$MODELS_DIR"
 fi
 
+TOOLS_DIR="/opt/mentator-llm-service/data/tools"
+TOOLSENV_DIR="/opt/mentator-llm-service/data/toolsenv"
+
+if [ ! -d "$TOOLS_DIR" ]; then
+    echo "Creating tools directory: $TOOLS_DIR"
+    mkdir -p "$TOOLS_DIR"
+fi
+
+if [ ! -d "$TOOLSENV_DIR" ]; then
+    echo "Creating toolsenv directory: $TOOLSENV_DIR"
+    mkdir -p "$TOOLSENV_DIR"
+fi
+
 if [ -z "$(ls -A "$MODELS_DIR")" ]; then
     echo "Models directory is empty, copying default models..."
     if [ -d "$DEFAULT_MODELS_DIR" ] && [ -n "$(ls -A "$DEFAULT_MODELS_DIR")" ]; then
