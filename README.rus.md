@@ -471,7 +471,6 @@ curl -X POST http://localhost:19777/prompt \
     useGrammar: boolean;      // Использовать GBNF для генерации с грамматикой
     jsonSchema: object;       // JSON Schema для валидации/генерации
   };
-  thinkingBudget?: number | null; // Для reasoning-моделей: макс. токенов на блок размышлений (0 = отключить thinking, null = без ограничений)
   toolServer?: string[];      // Имена серверных инструментов (из toolDir); ["*"] — все доступные
 }
 
