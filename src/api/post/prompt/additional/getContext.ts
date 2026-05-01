@@ -4,14 +4,15 @@ import type { TResultCode } from '../../../../tresult'
 import { Log } from '../../../../log'
 import { ServerStats } from '../../../../serverStats'
 
-let data: { model: LlamaModel; modelInfo: TModelFile; gpulayer: number | undefined } | undefined = undefined
+let data: { model: LlamaModel; modelInfo: TModelFile; gpulayer: number | undefined; contextSize: number | undefined } | undefined = undefined
 
-export async function GetContext(llama: Llama, name: string, gpulayer?: number): Promise<TResultCode<{ model: LlamaModel; loadModelStatus: 'exists' | 'load' }>> {
+export async function GetContext(llama: Llama, name: string, gpulayer?: number, contextSize?: number): Promise<TResultCode<{ model: LlamaModel; loadModelStatus: 'exists' | 'load'; contextSize: number | undefined }>> {
 	try {
 		let loadModelStatus = 'exists' as 'exists' | 'load'
 		const modelChanged = !data || data.modelInfo.name !== name
 		const gpulayerChanged = data !== undefined && data.gpulayer !== gpulayer
-		if (modelChanged || gpulayerChanged) {
+		const contextSizeChanged = data !== undefined && data.contextSize !== contextSize
+		if (modelChanged || gpulayerChanged || contextSizeChanged) {
 			const modelInfo = ModelManager().getModel(name)
 			if (!modelInfo) {
 				return { ok: false, error: `Model not found: "${name}"`, errorCode: 400 }
@@ -31,15 +32,16 @@ export async function GetContext(llama: Llama, name: string, gpulayer?: number):
 				modelInfo,
 				model,
 				gpulayer,
+				contextSize,
 			}
 			loadModelStatus = 'load'
-			ServerStats().setCurrentModel(modelInfo, loadTimestamp, gpulayer)
+			ServerStats().setCurrentModel(modelInfo, loadTimestamp, gpulayer, contextSize)
 		}
 		if (loadModelStatus === 'load') {
-			Log().debug('APP', `load model to memory "${data!.modelInfo.name}" (size ${Math.ceil(data!.modelInfo.sizeKb / 1024)} mb, gpulayer ${gpulayer ?? 'auto'})${gpulayerChanged && !modelChanged ? ' - only gpulayer change' : ''}`)
+			Log().debug('APP', `load model to memory "${data!.modelInfo.name}" (size ${Math.ceil(data!.modelInfo.sizeKb / 1024)} mb, gpulayer ${gpulayer ?? 'auto'}, contextSize ${contextSize ?? 'default'})${(gpulayerChanged || contextSizeChanged) && !modelChanged ? ' - config change only' : ''}`)
 		}
 
-		return { ok: true, result: { model: data!.model, loadModelStatus } }
+		return { ok: true, result: { model: data!.model, loadModelStatus, contextSize: data!.contextSize } }
 	} catch (err) {
 		return { ok: false, error: `on load model "${name}": ${err}`, errorCode: 500 }
 	}

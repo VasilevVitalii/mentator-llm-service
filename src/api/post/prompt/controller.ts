@@ -109,7 +109,7 @@ export async function controller(fastify: FastifyInstance) {
 					let context: any = undefined
 					let session: any = undefined
 					try {
-						const contextRes = await GetContext(llama, body.model, body.gpulayer)
+						const contextRes = await GetContext(llama, body.model, body.gpulayer, body.contextSize)
 						if (!contextRes.ok) {
 							const duration = {
 								promptMsec: durationPrompt.getMsec(),
@@ -124,7 +124,10 @@ export async function controller(fastify: FastifyInstance) {
 							await Db().editSavePrompt(contextRes.errorCode, body, errResponse, null, duration)
 							return
 						}
-						context = await contextRes.result.model.createContext()
+						const ctxSize = contextRes.result.contextSize
+						context = await contextRes.result.model.createContext(
+							ctxSize !== undefined ? { contextSize: ctxSize } : undefined
+						)
 						const loadModelStatus = contextRes.result.loadModelStatus
 
 						const sessionRes = GetSession(context, body.message.system)

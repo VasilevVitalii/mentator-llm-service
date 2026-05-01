@@ -11,6 +11,7 @@ export const GetStateResponseDto = Type.Object({
 			sizeMb: Type.Number(),
 			loadTimestamp: Type.Number(),
 			gpulayer: Type.Optional(Type.Number()),
+			contextSize: Type.Optional(Type.Number()),
 		}),
 		Type.Null(),
 	]),

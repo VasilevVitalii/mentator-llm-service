@@ -16,7 +16,6 @@
             flex: 1 1 300px;
             min-width: 300px;
             max-width: 400px;
-            height: 150px;
             background-color: white;
             padding: 20px;
             border-radius: 8px;
@@ -123,14 +122,25 @@
                     <div v-else class="stat-label">gpu info unavailable</div>
                 </div>
 
-                <!-- Model Info -->
+                <!-- Available Models -->
                 <div class="stat-widget">
-                    <h3>model info</h3>
+                    <h3>available models</h3>
                     <div>
                         <div class="stat-row">
                             <span class="stat-row-label">count models</span>
                             <span class="stat-row-value-link" @click="onModelsClick">{{ modelsCount }}</span>
                         </div>
+                        <div class="stat-row">
+                            <span class="stat-row-label">in disk (size)</span>
+                            <span class="stat-row-value">{{ modelsTotalSizeMb }} mb</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loaded Model -->
+                <div class="stat-widget">
+                    <h3>loaded model</h3>
+                    <div>
                         <div v-if="currentModel">
                             <div class="stat-row">
                                 <span class="stat-row-label">in memory</span>
@@ -139,6 +149,10 @@
                             <div class="stat-row">
                                 <span class="stat-row-label">in memory (size)</span>
                                 <span class="stat-row-value">{{ currentModel.sizeMb }} mb</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-row-label">in memory (context)</span>
+                                <span class="stat-row-value">{{ currentModel.contextSize != null ? currentModel.contextSize + ' tokens' : 'default' }}</span>
                             </div>
                             <div class="stat-row">
                                 <span class="stat-row-label">in memory (gpu layer)</span>
@@ -333,7 +347,11 @@
             computed: {
                 modelsCount() {
                     return this.models.length
-                }
+                },
+                modelsTotalSizeMb() {
+                    const totalKb = this.models.reduce((sum, m) => sum + (m.sizeKb || 0), 0)
+                    return Math.round(totalKb / 1024)
+                },
             },
             mounted() {
                 // Load version
@@ -430,6 +448,7 @@
                                     sizeMb: data.currentModel.sizeMb,
                                     loadTime: formatDateTime(new Date(data.currentModel.loadTimestamp)),
                                     gpulayer: data.currentModel.gpulayer ?? null,
+                                    contextSize: data.currentModel.contextSize ?? null,
                                 }
                             } else {
                                 this.currentModel = null

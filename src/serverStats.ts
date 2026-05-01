@@ -6,6 +6,7 @@ type TModelStats = {
 	sizeMb: number
 	loadTimestamp: number
 	gpulayer?: number
+	contextSize?: number
 }
 
 class ServerStatsClass {
@@ -24,12 +25,13 @@ class ServerStatsClass {
 		return Math.floor((Date.now() - this._serverStartTimestamp) / 1000)
 	}
 
-	setCurrentModel(modelInfo: TModelFile, loadTimestamp: number, gpulayer?: number): void {
+	setCurrentModel(modelInfo: TModelFile, loadTimestamp: number, gpulayer?: number, contextSize?: number): void {
 		this._currentModel = {
 			name: modelInfo.name,
 			sizeMb: Math.ceil(modelInfo.sizeKb / 1024),
 			loadTimestamp,
 			gpulayer,
+			contextSize,
 		}
 	}
 

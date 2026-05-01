@@ -19,6 +19,7 @@ A specialized local LLM inference service that **guarantees JSON-formatted respo
 - **Local inference** - full privacy and control over your data, no external API calls
 - **GGUF model support** - use quantized models for efficient processing on consumer hardware
 - **GPU layer control** - per-request `gpulayer` parameter for partial GPU offloading (0 = CPU only, N = N layers on GPU)
+- **Per-request context size** - optional `contextSize` parameter sets the LLM context window in tokens; changing it between requests automatically recreates the context (omitting it is a distinct state equivalent to "use model default")
 - **Embedding endpoint** - `POST /embedding` generates text embedding vectors using any GGUF embedding model; shares the same queue and single-model-in-memory principle as `/prompt`
 - **Server-side tools** - LLM can call JS functions defined in `*.tool.txt` files; tool code has access to `LIB` (fs, path, math, db connectors for PostgreSQL / MSSQL / Oracle); connection secrets stay in `*.toolenv.txt` files and are never exposed to the model
 - **Simple REST API** - easy integration with any programming language or tool
@@ -455,6 +456,7 @@ Process a prompt and return structured JSON response.
 {
   model: string;              // Model name (filename with .gguf)
   gpulayer?: number;          // GPU layers to offload (0 = CPU only, N = N layers on GPU, omit = auto)
+  contextSize?: number;       // Context window size in tokens (min 512); omit = model default; changing recreates the context
   message: {
     system?: string;          // Optional system prompt
     user: string;             // User prompt
@@ -579,7 +581,7 @@ The service provides several web pages:
 - **/** - Main page with service overview and examples
 - **/chat** - Interactive chat interface for testing prompts; includes a `gpu layer` field for per-request GPU offloading control (persisted in localStorage)
 - **/doc** - Swagger/OpenAPI API documentation
-- **/stat** - Statistics dashboard with loaded models and metrics; model info card shows currently loaded model name, size, gpu layer (or `auto`), and load time
+- **/stat** - Statistics dashboard; **available models** card shows total model count (clickable — opens list) and total disk size; **loaded model** card shows currently loaded model name, size, context size (or `default`), gpu layer (or `auto`), and load time
 - **/log/core** - Core service operation logs
 - **/log/chat** - Request/response logs for prompts
 
