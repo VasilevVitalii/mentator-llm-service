@@ -22,6 +22,9 @@ export const PostPromptRequestDto = Type.Object({
 			}),
 		}),
 	),
+	thinkingBudget: Type.Optional(
+		Type.Union([Type.Number({ description: 'Thinking token budget for reasoning models (0 = no thinking)', minimum: 0 }), Type.Null()]),
+	),
 	toolServer: Type.Optional(
 		Type.Array(Type.String(), {
 			description: 'Server-side tools by name. Use ["*"] to include all available server tools. Tool names and code are taken from the server tool directory.',

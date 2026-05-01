@@ -471,6 +471,7 @@ Process a prompt and return structured JSON response.
     useGrammar: boolean;      // Use GBNF for grammar-guided generation
     jsonSchema: object;       // JSON Schema for validation/generation
   };
+  thinkingBudget?: number | null; // For reasoning models: max tokens for the thinking block (0 = disable thinking, null = unlimited)
   toolServer?: string[];      // Server-side tool names to make available (from toolDir); use ["*"] for all
 }
 

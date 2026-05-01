@@ -127,7 +127,7 @@ export async function controller(fastify: FastifyInstance) {
 						context = await contextRes.result.model.createContext()
 						const loadModelStatus = contextRes.result.loadModelStatus
 
-						const sessionRes = GetSession(context, body.message.system)
+						const sessionRes = GetSession(context, body.message.system, body.thinkingBudget)
 						if (!sessionRes.ok) {
 							const duration = {
 								promptMsec: durationPrompt.getMsec(),
